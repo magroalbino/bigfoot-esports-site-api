@@ -189,24 +189,26 @@ class NewsSystem {
     }
 
     showModal(news) {
-        const modal = document.getElementById('newsModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalSource = document.getElementById('modalSource');
-        const modalDate = document.getElementById('modalDate');
-        const modalContent = document.getElementById('modalContent');
-        const modalSourceLink = document.getElementById('modalSourceLink');
+    const modal = document.getElementById('newsModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSource = document.getElementById('modalSource');
+    const modalDate = document.getElementById('modalDate');
+    const modalContent = document.getElementById('modalContent');
+    const modalSourceLink = document.getElementById('modalSourceLink');
 
-        if (modal && modalTitle && modalSource && modalDate && modalContent && modalSourceLink) {
-            modalTitle.textContent = window.AppUtils.sanitizeHtml(news.title);
-            modalSource.textContent = window.AppUtils.sanitizeHtml(news.source);
-            modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
-            modalContent.innerHTML = window.AppUtils.sanitizeHtml(news.content); // Conteúdo completo
-            modalSourceLink.href = window.AppUtils.sanitizeHtml(news.url);
-            modalSourceLink.textContent = `Fonte: ${window.AppUtils.sanitizeHtml(news.source)}`;
-            
-            modal.style.display = 'flex';
-        }
+    if (modal && modalTitle && modalSource && modalDate && modalContent && modalSourceLink) {
+        modalTitle.textContent = window.AppUtils.sanitizeHtml(news.title);
+        modalSource.textContent = window.AppUtils.sanitizeHtml(news.source);
+        modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
+        // Preservar quebras de linha convertendo-as em <p> para melhor formatação
+        const paragraphs = window.AppUtils.sanitizeHtml(news.content).split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+        modalContent.innerHTML = paragraphs;
+        modalSourceLink.href = window.AppUtils.sanitizeHtml(news.url);
+        modalSourceLink.textContent = `Fonte: ${window.AppUtils.sanitizeHtml(news.source)}`;
+        
+        modal.style.display = 'flex';
     }
+}
 
     hideModal() {
         const modal = document.getElementById('newsModal');
