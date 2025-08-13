@@ -66,6 +66,20 @@
                 <h3>Nenhuma notícia encontrada</h3>
                 <p>Tente atualizar as notícias ou verifique sua conexão.</p>
             </div>
+
+            <!-- Modal para exibir o conteúdo completo -->
+            <div id="newsModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span id="closeModal" class="modal-close">&times;</span>
+                    <h2 id="modalTitle"></h2>
+                    <p id="modalSource" class="modal-source"></p>
+                    <p id="modalDate" class="modal-date"></p>
+                    <div id="modalContent" class="modal-body"></div>
+                    <div class="modal-footer">
+                        <a id="modalSourceLink" href="#" target="_blank" class="modal-source-link">Fonte: Inven Global</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
