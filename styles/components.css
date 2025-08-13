@@ -90,6 +90,7 @@
     overflow: hidden;
     transition: all var(--transition-normal);
     border: 1px solid var(--border-color);
+    position: relative;
 }
 
 .news-card:hover {
@@ -109,6 +110,20 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.translation-badge {
+    background: linear-gradient(45deg, #10b981, #059669);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0.5px;
 }
 
 .news-card-title {
@@ -122,6 +137,18 @@
 .news-card-date {
     font-size: 12px;
     color: var(--text-muted);
+}
+
+.news-card-content-wrapper {
+    padding: 0 var(--spacing-lg) var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.news-card-content {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
 }
 
 .news-card-footer {
@@ -141,6 +168,56 @@
 
 .news-card-link:hover {
     color: var(--secondary-color);
+}
+
+.btn-toggle-original {
+    background: var(--background-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-toggle-original:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.news-card-original {
+    background: var(--background-light);
+    padding: var(--spacing-md);
+    margin: 0;
+    border-top: 1px solid var(--border-color);
+    display: none;
+}
+
+.news-card.show-original .news-card-original {
+    display: block;
+}
+
+.news-card.show-original .btn-toggle-original {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.original-title {
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    opacity: 0.8;
+}
+
+.original-content {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    font-style: italic;
 }
 
 /* Loading States */
