@@ -1,16 +1,4 @@
-createNewsCard(news) {
-        const date = new Date(news.date).toLocaleString('pt-BR');
-        const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        const content = news.content ? `<p class="news-card-content">${news.content}</p>` : '';
-        
-        return `
-            <div class="news-card">
-                <div class="news-card-header">
-                    <div class="news-card-source">
-                        ${news.source}
-                        ${translationBadge}
-                    </div>
-                    <h3 classclass NewsSystem {
+class NewsSystem {
     constructor() {
         this.apiUrl = '/api/news';
         this.autoRefresh = true;
