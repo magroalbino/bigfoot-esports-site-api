@@ -43,6 +43,24 @@ class NewsSystem {
                 this.toggleAutoRefresh();
             });
         }
+
+        // Evento para fechar o modal
+        const closeModal = document.getElementById('closeModal');
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                this.hideModal();
+            });
+        }
+
+        // Fechar o modal ao clicar fora do conteúdo
+        const modal = document.getElementById('newsModal');
+        if (modal) {
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    this.hideModal();
+                }
+            });
+        }
     }
 
     async loadNews() {
@@ -56,6 +74,8 @@ class NewsSystem {
             console.log('Response status:', response.status);
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Detalhes do erro:', errorText);
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
@@ -125,36 +145,74 @@ class NewsSystem {
 
         if (emptyState) emptyState.style.display = 'none';
         
-        const htmlContent = news.map(item => this.createNewsCard(item)).join('');
+        const htmlContent = news.map((item, index) => this.createNewsCard(item, index)).join('');
         console.log('HTML gerado:', htmlContent.substring(0, 200) + '...');
         
         container.innerHTML = htmlContent;
+        
+        // Adicionar eventos de clique para abrir o modal
+        news.forEach((item, index) => {
+            const card = document.getElementById(`news-card-${index}`);
+            if (card) {
+                card.addEventListener('click', () => {
+                    this.showModal(item);
+                });
+            }
+        });
+        
         console.log('Notícias inseridas no DOM');
     }
 
-    createNewsCard(news) {
+    createNewsCard(news, index) {
         const date = new Date(news.date).toLocaleString('pt-BR');
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        const content = news.content ? `<div class="news-card-content-wrapper"><p class="news-card-content">${news.content}</p></div>` : '';
+        const content = news.content ? `<div class="news-card-content-wrapper"><p class="news-card-content">${window.AppUtils.sanitizeHtml(news.content.substring(0, 100))}</p></div>` : '';
         
         return `
-            <div class="news-card">
+            <div class="news-card" id="news-card-${index}" style="cursor: pointer;">
                 <div class="news-card-header">
                     <div class="news-card-source">
-                        ${news.source}
+                        ${window.AppUtils.sanitizeHtml(news.source)}
                         ${translationBadge}
                     </div>
-                    <h3 class="news-card-title">${news.title}</h3>
+                    <h3 class="news-card-title">${window.AppUtils.sanitizeHtml(news.title)}</h3>
                     <div class="news-card-date">${date}</div>
                 </div>
                 ${content}
                 <div class="news-card-footer">
-                    <a href="${news.url}" target="_blank" class="news-card-link">
-                        Ler mais →
+                    <a href="${window.AppUtils.sanitizeHtml(news.url)}" target="_blank" class="news-card-source-link">
+                        Fonte: ${window.AppUtils.sanitizeHtml(news.source)}
                     </a>
                 </div>
             </div>
         `;
+    }
+
+    showModal(news) {
+        const modal = document.getElementById('newsModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSource = document.getElementById('modalSource');
+        const modalDate = document.getElementById('modalDate');
+        const modalContent = document.getElementById('modalContent');
+        const modalSourceLink = document.getElementById('modalSourceLink');
+
+        if (modal && modalTitle && modalSource && modalDate && modalContent && modalSourceLink) {
+            modalTitle.textContent = window.AppUtils.sanitizeHtml(news.title);
+            modalSource.textContent = window.AppUtils.sanitizeHtml(news.source);
+            modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
+            modalContent.innerHTML = window.AppUtils.sanitizeHtml(news.content); // Conteúdo completo
+            modalSourceLink.href = window.AppUtils.sanitizeHtml(news.url);
+            modalSourceLink.textContent = `Fonte: ${window.AppUtils.sanitizeHtml(news.source)}`;
+            
+            modal.style.display = 'flex';
+        }
+    }
+
+    hideModal() {
+        const modal = document.getElementById('newsModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
     }
 
     updateStats(count, timestamp) {
