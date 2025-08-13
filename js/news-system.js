@@ -84,18 +84,36 @@ createNewsCard(news) {
 
     createNewsCard(news) {
         const date = new Date(news.date).toLocaleString('pt-BR');
+        const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
+        const content = news.content ? `<p class="news-card-content">${news.content}</p>` : '';
+        
         return `
             <div class="news-card">
                 <div class="news-card-header">
-                    <div class="news-card-source">${news.source}</div>
+                    <div class="news-card-source">
+                        ${news.source}
+                        ${translationBadge}
+                    </div>
                     <h3 class="news-card-title">${news.title}</h3>
                     <div class="news-card-date">${date}</div>
                 </div>
+                ${content ? `<div class="news-card-content-wrapper">${content}</div>` : ''}
                 <div class="news-card-footer">
                     <a href="${news.url}" target="_blank" class="news-card-link">
                         Ler mais →
                     </a>
+                    ${news.originalTitle && news.originalTitle !== news.title ? 
+                        `<button class="btn-toggle-original" onclick="this.closest('.news-card').classList.toggle('show-original')" title="Ver texto original">
+                            <span class="toggle-text">Original</span>
+                        </button>` : ''
+                    }
                 </div>
+                ${news.originalTitle && news.originalTitle !== news.title ? `
+                    <div class="news-card-original">
+                        <div class="original-title">${news.originalTitle}</div>
+                        ${news.originalContent ? `<div class="original-content">${news.originalContent}</div>` : ''}
+                    </div>
+                ` : ''}
             </div>
         `;
     }
