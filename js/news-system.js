@@ -107,7 +107,7 @@ class NewsSystem {
             {
                 title: "Riot Games Define Lançamento das Skins do T1 para Setembro",
                 url: "https://www.invenglobal.com/lol/articles/19564/riot-games-sets-september-launch-for-t1-worlds-skins",
-                content: "A Riot Games anunciou que as novas skins do T1, campeão mundial, serão lançadas em setembro.",
+                content: "A Riot Games anunciou que as novas skins do T1, campeão mundial, serão lançadas em setembro.\n\nCada skin reflete a identidade de um jogador do T1.",
                 source: "Inven Global",
                 date: new Date().toISOString(),
                 translated: true
@@ -115,7 +115,7 @@ class NewsSystem {
             {
                 title: "Gen.G Garante Vaga Direta nos Playoffs da LCK",
                 url: "https://www.invenglobal.com/lol/articles/19556/geng-clinch-direct-playoffs-entry",
-                content: "A equipe Gen.G conquistou uma sequência impressionante de vitórias consecutivas.",
+                content: "A equipe Gen.G conquistou uma sequência impressionante de vitórias consecutivas.\n\nLiderados por Chovy, a equipe está pronta para os playoffs.",
                 source: "Inven Global",
                 date: new Date(Date.now() - 3600000).toISOString(),
                 translated: true
@@ -166,7 +166,9 @@ class NewsSystem {
     createNewsCard(news, index) {
         const date = new Date(news.date).toLocaleString('pt-BR');
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        const content = news.content ? `<div class="news-card-content-wrapper"><p class="news-card-content">${window.AppUtils.sanitizeHtml(news.content.substring(0, 100))}</p></div>` : '';
+        // Extrair apenas o primeiro parágrafo do conteúdo
+        const firstParagraph = news.content ? window.AppUtils.sanitizeHtml(news.content.split('\n')[0]) : '';
+        const content = firstParagraph ? `<div class="news-card-content-wrapper"><p class="news-card-content">${firstParagraph}</p></div>` : '';
         
         return `
             <div class="news-card" id="news-card-${index}" style="cursor: pointer;">
@@ -189,26 +191,26 @@ class NewsSystem {
     }
 
     showModal(news) {
-    const modal = document.getElementById('newsModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalSource = document.getElementById('modalSource');
-    const modalDate = document.getElementById('modalDate');
-    const modalContent = document.getElementById('modalContent');
-    const modalSourceLink = document.getElementById('modalSourceLink');
+        const modal = document.getElementById('newsModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSource = document.getElementById('modalSource');
+        const modalDate = document.getElementById('modalDate');
+        const modalContent = document.getElementById('modalContent');
+        const modalSourceLink = document.getElementById('modalSourceLink');
 
-    if (modal && modalTitle && modalSource && modalDate && modalContent && modalSourceLink) {
-        modalTitle.textContent = window.AppUtils.sanitizeHtml(news.title);
-        modalSource.textContent = window.AppUtils.sanitizeHtml(news.source);
-        modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
-        // Preservar quebras de linha convertendo-as em <p> para melhor formatação
-        const paragraphs = window.AppUtils.sanitizeHtml(news.content).split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
-        modalContent.innerHTML = paragraphs;
-        modalSourceLink.href = window.AppUtils.sanitizeHtml(news.url);
-        modalSourceLink.textContent = `Fonte: ${window.AppUtils.sanitizeHtml(news.source)}`;
-        
-        modal.style.display = 'flex';
+        if (modal && modalTitle && modalSource && modalDate && modalContent && modalSourceLink) {
+            modalTitle.textContent = window.AppUtils.sanitizeHtml(news.title);
+            modalSource.textContent = window.AppUtils.sanitizeHtml(news.source);
+            modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
+            // Exibir o conteúdo completo, com parágrafos
+            const paragraphs = window.AppUtils.sanitizeHtml(news.content).split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+            modalContent.innerHTML = paragraphs;
+            modalSourceLink.href = window.AppUtils.sanitizeHtml(news.url);
+            modalSourceLink.textContent = `Fonte: ${window.AppUtils.sanitizeHtml(news.source)}`;
+            
+            modal.style.display = 'flex';
+        }
     }
-}
 
     hideModal() {
         const modal = document.getElementById('newsModal');
