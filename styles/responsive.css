@@ -24,6 +24,16 @@
     main {
         padding: var(--spacing-lg) var(--spacing-sm);
     }
+
+    .news-card-footer {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        align-items: stretch;
+    }
+
+    .btn-toggle-original {
+        align-self: flex-end;
+    }
 }
 
 @media (max-width: 480px) {
@@ -47,8 +57,27 @@
         padding: var(--spacing-md);
     }
 
+    .news-card-content-wrapper {
+        padding: 0 var(--spacing-md) var(--spacing-md);
+    }
+
+    .news-card-original {
+        padding: var(--spacing-sm);
+    }
+
     .btn {
         padding: 10px 18px;
         font-size: 13px;
+    }
+
+    .translation-badge {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+
+    .news-card-source {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
     }
 }
