@@ -19,6 +19,7 @@ createNewsCard(news) {
     }
 
     init() {
+        console.log('NewsSystem: Inicializando...');
         this.updateCurrentDate();
         this.bindEvents();
         this.loadNews();
@@ -38,54 +39,115 @@ createNewsCard(news) {
     }
 
     bindEvents() {
-        document.getElementById('refreshBtn').addEventListener('click', () => {
-            this.loadNews();
-        });
+        const refreshBtn = document.getElementById('refreshBtn');
+        const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+        
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                console.log('Botão refresh clicado');
+                this.loadNews();
+            });
+        }
 
-        document.getElementById('autoRefreshBtn').addEventListener('click', () => {
-            this.toggleAutoRefresh();
-        });
+        if (autoRefreshBtn) {
+            autoRefreshBtn.addEventListener('click', () => {
+                console.log('Botão auto-refresh clicado');
+                this.toggleAutoRefresh();
+            });
+        }
     }
 
     async loadNews() {
+        console.log('NewsSystem: Carregando notícias...');
         this.showLoading();
         this.hideError();
 
         try {
+            console.log(`Fazendo fetch para: ${this.apiUrl}`);
             const response = await fetch(this.apiUrl);
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
+            console.log('Dados recebidos:', data);
 
-            if (data.success) {
+            if (data.success && data.news) {
+                console.log(`Exibindo ${data.news.length} notícias`);
                 this.displayNews(data.news);
                 this.updateStats(data.news.length, data.timestamp);
             } else {
-                this.showError('Erro ao carregar notícias: ' + data.error);
+                console.error('Resposta inválida:', data);
+                this.showError('Erro ao carregar notícias: ' + (data.error || 'Resposta inválida'));
             }
         } catch (error) {
+            console.error('Erro no fetch:', error);
             this.showError('Erro de conexão: ' + error.message);
+            
+            // Fallback para notícias estáticas
+            this.loadFallbackNews();
         } finally {
             this.hideLoading();
         }
     }
 
+    loadFallbackNews() {
+        console.log('Carregando notícias fallback...');
+        const fallbackNews = [
+            {
+                title: "Riot Games Define Lançamento das Skins do T1 para Setembro",
+                url: "https://www.invenglobal.com/lol/articles/19564/riot-games-sets-september-launch-for-t1-worlds-skins",
+                content: "A Riot Games anunciou que as novas skins do T1, campeão mundial, serão lançadas em setembro.",
+                source: "Inven Global",
+                date: new Date().toISOString(),
+                translated: true
+            },
+            {
+                title: "Gen.G Garante Vaga Direta nos Playoffs da LCK",
+                url: "https://www.invenglobal.com/lol/articles/19556/geng-clinch-direct-playoffs-entry",
+                content: "A equipe Gen.G conquistou uma sequência impressionante de vitórias consecutivas.",
+                source: "Inven Global",
+                date: new Date(Date.now() - 3600000).toISOString(),
+                translated: true
+            }
+        ];
+        
+        this.displayNews(fallbackNews);
+        this.updateStats(fallbackNews.length, new Date().toISOString());
+    }
+
     displayNews(news) {
+        console.log('Exibindo notícias:', news.length);
         const container = document.getElementById('newsContainer');
         const emptyState = document.getElementById('emptyState');
 
-        if (!news || news.length === 0) {
-            container.innerHTML = '';
-            emptyState.style.display = 'block';
+        if (!container) {
+            console.error('Container newsContainer não encontrado!');
             return;
         }
 
-        emptyState.style.display = 'none';
-        container.innerHTML = news.map(item => this.createNewsCard(item)).join('');
+        if (!news || news.length === 0) {
+            console.log('Nenhuma notícia para exibir');
+            container.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+        
+        const htmlContent = news.map(item => this.createNewsCard(item)).join('');
+        console.log('HTML gerado:', htmlContent.substring(0, 200) + '...');
+        
+        container.innerHTML = htmlContent;
+        console.log('Notícias inseridas no DOM');
     }
 
     createNewsCard(news) {
         const date = new Date(news.date).toLocaleString('pt-BR');
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        const content = news.content ? `<p class="news-card-content">${news.content}</p>` : '';
+        const content = news.content ? `<div class="news-card-content-wrapper"><p class="news-card-content">${news.content}</p></div>` : '';
         
         return `
             <div class="news-card">
@@ -97,67 +159,74 @@ createNewsCard(news) {
                     <h3 class="news-card-title">${news.title}</h3>
                     <div class="news-card-date">${date}</div>
                 </div>
-                ${content ? `<div class="news-card-content-wrapper">${content}</div>` : ''}
+                ${content}
                 <div class="news-card-footer">
                     <a href="${news.url}" target="_blank" class="news-card-link">
                         Ler mais →
                     </a>
-                    ${news.originalTitle && news.originalTitle !== news.title ? 
-                        `<button class="btn-toggle-original" onclick="this.closest('.news-card').classList.toggle('show-original')" title="Ver texto original">
-                            <span class="toggle-text">Original</span>
-                        </button>` : ''
-                    }
                 </div>
-                ${news.originalTitle && news.originalTitle !== news.title ? `
-                    <div class="news-card-original">
-                        <div class="original-title">${news.originalTitle}</div>
-                        ${news.originalContent ? `<div class="original-content">${news.originalContent}</div>` : ''}
-                    </div>
-                ` : ''}
             </div>
         `;
     }
 
     updateStats(count, timestamp) {
-        document.getElementById('newsCount').textContent = count;
+        const newsCountEl = document.getElementById('newsCount');
+        const lastUpdateEl = document.getElementById('lastUpdate');
         
-        if (timestamp) {
+        if (newsCountEl) {
+            newsCountEl.textContent = count;
+        }
+        
+        if (timestamp && lastUpdateEl) {
             const date = new Date(timestamp);
-            document.getElementById('lastUpdate').textContent = 
-                date.toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
+            lastUpdateEl.textContent = date.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
         }
     }
 
     showLoading() {
-        document.getElementById('loadingContainer').innerHTML = `
-            <div class="loading">
-                <div class="spinner"></div>
-            </div>
-        `;
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            loadingContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            `;
+        }
     }
 
     hideLoading() {
-        document.getElementById('loadingContainer').innerHTML = '';
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            loadingContainer.innerHTML = '';
+        }
     }
 
     showError(message) {
-        document.getElementById('errorContainer').innerHTML = `
-            <div class="error">
-                <strong>Erro:</strong> ${message}
-            </div>
-        `;
+        console.error('Erro exibido:', message);
+        const errorContainer = document.getElementById('errorContainer');
+        if (errorContainer) {
+            errorContainer.innerHTML = `
+                <div class="error">
+                    <strong>Erro:</strong> ${message}
+                </div>
+            `;
+        }
     }
 
     hideError() {
-        document.getElementById('errorContainer').innerHTML = '';
+        const errorContainer = document.getElementById('errorContainer');
+        if (errorContainer) {
+            errorContainer.innerHTML = '';
+        }
     }
 
     startAutoRefresh() {
         if (this.autoRefresh) {
             this.refreshInterval = setInterval(() => {
+                console.log('Auto-refresh executado');
                 this.loadNews();
             }, 300000); // 5 minutos
         }
@@ -176,15 +245,19 @@ createNewsCard(news) {
         if (this.autoRefresh) {
             this.autoRefresh = false;
             this.stopAutoRefresh();
-            btn.textContent = '⏰ Auto: OFF';
-            btn.classList.remove('btn-secondary');
-            btn.classList.add('btn-primary');
+            if (btn) {
+                btn.textContent = '⏰ Auto: OFF';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-primary');
+            }
         } else {
             this.autoRefresh = true;
             this.startAutoRefresh();
-            btn.textContent = '⏰ Auto: ON';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-secondary');
+            if (btn) {
+                btn.textContent = '⏰ Auto: ON';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+            }
         }
     }
 }
