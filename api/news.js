@@ -54,7 +54,43 @@ function basicTranslation(text) {
         'May': 'maio',
         'June': 'junho',
         'July': 'julho',
-        'August': 'agosto'
+        'August': 'agosto',
+        'LPL': 'LPL',
+        'LCK': 'LCK',
+        'LCS': 'LCS',
+        'LEC': 'LEC',
+        'MSI': 'MSI',
+        'Riot Games': 'Riot Games',
+        'T1': 'T1',
+        'Gen.G': 'Gen.G',
+        'DRX': 'DRX',
+        'KT Rolster': 'KT Rolster',
+        'Hanwha Life Esports': 'Hanwha Life Esports',
+        'FPX': 'FPX',
+        'Keria': 'Keria',
+        'Faker': 'Faker',
+        'Viper': 'Viper',
+        'Milkyway': 'Milkyway',
+        'LazyFeel': 'LazyFeel',
+        'Suspends': 'suspende',
+        'Indefinitely': 'indefinidamente',
+        'Over': 'por',
+        'Allegations': 'alegações',
+        'Dominance': 'domínio',
+        'After': 'após',
+        'Sweep': 'varredura',
+        'Historic': 'histórico',
+        'First': 'primeiro',
+        'Korean': 'coreano',
+        'Launch': 'lançamento',
+        'Attends': 'participa',
+        'State': 'estado',
+        'Banquet': 'banquete',
+        'Making': 'fazendo',
+        'History': 'história',
+        'reflects': 'reflete',
+        'upcoming': 'próximo',
+        'milestone': 'marco'
     };
 
     let translatedText = text;
@@ -100,7 +136,7 @@ async function scrapeNewsContent(url) {
         console.log(`Scraping conteúdo de: ${url}`);
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; NewsBot/1.0)'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
         });
         if (!response.ok) throw new Error(`Falha ao acessar ${url}: ${response.status}`);
@@ -108,13 +144,43 @@ async function scrapeNewsContent(url) {
         const html = await response.text();
         const $ = cheerio.load(html);
         
-        // Seletor para o conteúdo principal do artigo (ajuste conforme o HTML do Inven Global)
-        const contentElement = $('.content-body, .article-content, .post-content, article p');
-        let content = contentElement
-            .map((i, el) => $(el).text().trim())
-            .get()
-            .filter(text => text.length > 0)
-            .join('\n\n');
+        // Seletores específicos para o Inven Global
+        let content = '';
+        
+        // Tentar diferentes seletores para o conteúdo do artigo
+        const contentSelectors = [
+            '.article-content p',
+            '.content-body p',
+            '.post-content p',
+            'article p',
+            '.entry-content p',
+            '.article-body p'
+        ];
+        
+        for (const selector of contentSelectors) {
+            const elements = $(selector);
+            if (elements.length > 0) {
+                content = elements
+                    .map((i, el) => $(el).text().trim())
+                    .get()
+                    .filter(text => text.length > 20) // Filtrar parágrafos muito curtos
+                    .join('\n\n');
+                break;
+            }
+        }
+        
+        // Se não encontrou conteúdo com os seletores específicos, tentar uma abordagem mais geral
+        if (!content) {
+            const allParagraphs = $('p');
+            const paragraphTexts = allParagraphs
+                .map((i, el) => $(el).text().trim())
+                .get()
+                .filter(text => text.length > 50); // Filtrar parágrafos muito curtos
+            
+            if (paragraphTexts.length > 0) {
+                content = paragraphTexts.slice(0, 10).join('\n\n'); // Pegar os primeiros 10 parágrafos
+            }
+        }
         
         if (!content) {
             console.warn(`Nenhum conteúdo encontrado em: ${url}`);
@@ -138,65 +204,81 @@ async function scrapeNewsContent(url) {
     }
 }
 
-// Parser para RSS com scraping do conteúdo completo
-async function parseRSS(xmlText, sourceName) {
+// Função para extrair notícias diretamente da página do Inven Global LoL
+async function scrapeInvenGlobalNews() {
     try {
+        console.log('Fazendo scraping da página do Inven Global LoL...');
+        const response = await fetch('https://www.invenglobal.com/lol', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        
+        if (!response.ok) throw new Error(`Falha ao acessar Inven Global: ${response.status}`);
+        
+        const html = await response.text();
+        const $ = cheerio.load(html);
+        
         const news = [];
-        const itemRegex = /<item[^>]*>(.*?)<\/item>/gs;
-        const titleRegex = /<title[^>]*>(.*?)<\/title>/s;
-        const linkRegex = /<link[^>]*>(.*?)<\/link>/s;
-        const pubDateRegex = /<pubDate[^>]*>(.*?)<\/pubDate>/s;
-
-        let match;
-        while ((match = itemRegex.exec(xmlText)) !== null && news.length < 5) {
-            const itemContent = match[1];
-            const titleMatch = titleRegex.exec(itemContent);
-            const linkMatch = linkRegex.exec(itemContent);
-            const dateMatch = pubDateRegex.exec(itemContent);
-
-            if (titleMatch && linkMatch) {
-                const title = titleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
-                const url = linkMatch[1].trim();
-                const content = await scrapeNewsContent(url); // Scraping do conteúdo completo
+        const newsItems = $('.news-item, .article-item, .post-item, .content-item').slice(0, 5);
+        
+        // Se não encontrou com seletores específicos, tentar uma abordagem mais geral
+        if (newsItems.length === 0) {
+            // Procurar por links que parecem ser notícias
+            const newsLinks = $('a').filter((i, el) => {
+                const href = $(el).attr('href');
+                const text = $(el).text().trim();
+                return href && href.includes('/articles/') && text.length > 10;
+            }).slice(0, 5);
+            
+            for (let i = 0; i < newsLinks.length; i++) {
+                const link = newsLinks.eq(i);
+                const title = link.text().trim();
+                const url = link.attr('href');
                 
-                news.push({
-                    title: await translateText(title),
-                    url,
-                    content,
-                    source: sourceName,
-                    date: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
-                    translated: true
-                });
+                if (title && url) {
+                    const fullUrl = url.startsWith('http') ? url : `https://www.invenglobal.com${url}`;
+                    const content = await scrapeNewsContent(fullUrl);
+                    
+                    news.push({
+                        title: await translateText(title),
+                        url: fullUrl,
+                        content,
+                        source: 'Inven Global',
+                        date: new Date().toISOString(), // Data atual como fallback
+                        translated: true
+                    });
+                }
+            }
+        } else {
+            // Processar itens de notícias encontrados
+            for (let i = 0; i < newsItems.length; i++) {
+                const item = newsItems.eq(i);
+                const titleElement = item.find('h1, h2, h3, h4, .title, .headline').first();
+                const linkElement = item.find('a').first();
+                
+                const title = titleElement.text().trim() || linkElement.text().trim();
+                const url = linkElement.attr('href');
+                
+                if (title && url) {
+                    const fullUrl = url.startsWith('http') ? url : `https://www.invenglobal.com${url}`;
+                    const content = await scrapeNewsContent(fullUrl);
+                    
+                    news.push({
+                        title: await translateText(title),
+                        url: fullUrl,
+                        content,
+                        source: 'Inven Global',
+                        date: new Date().toISOString(),
+                        translated: true
+                    });
+                }
             }
         }
-
+        
         return news;
     } catch (error) {
-        console.error('Erro ao fazer parse do RSS:', error);
-        return [];
-    }
-}
-
-// Parser para JSON com scraping do conteúdo completo
-async function parseJSON(data, sourceName) {
-    try {
-        const news = [];
-        if (data.articles && Array.isArray(data.articles)) {
-            for (const article of data.articles.slice(0, 5)) {
-                const content = await scrapeNewsContent(article.url || article.link);
-                news.push({
-                    title: await translateText(article.title || article.headline),
-                    url: article.url || article.link,
-                    content,
-                    source: sourceName,
-                    date: article.publishedAt || article.date || new Date().toISOString(),
-                    translated: true
-                });
-            }
-        }
-        return news;
-    } catch (error) {
-        console.error('Erro ao fazer parse do JSON:', error);
+        console.error('Erro ao fazer scraping do Inven Global:', error);
         return [];
     }
 }
@@ -207,43 +289,43 @@ export function getStaticNews() {
     const today = new Date('2025-08-14T00:00:00-03:00');
     const news = [
         {
-            title: "BLAST e Singapore Tourism Board Assinam Acordo Plurianual para Eventos de Esports",
-            url: "https://www.invenglobal.com/articles/19568/blast-singapore-tourism-board-ink-multi-year-esports-event-agreement",
-            content: "Conteúdo não disponível. Acesse o link da notícia para ler a íntegra.",
+            title: "Equipe LPL FPX Suspende Milkyway Indefinidamente por Alegações de Vazamento de Pick-Ban",
+            url: "https://www.invenglobal.com/articles/19568/lpl-team-fpx-suspends-milkyway-indefinitely-over-pick-ban-leak-allegations",
+            content: "A equipe profissional de jogos da LPL da China, FPX Esports Club, suspendeu indefinidamente seu jogador Cai 'milkyway' Zi-Jun. A suspensão veio após alegações de que ele estava envolvido em manipulação de partidas e vazamento de informações estratégicas durante o processo de pick-ban. O clube anunciou que está conduzindo uma investigação completa sobre as alegações e que tomará as medidas apropriadas com base nos resultados. Esta é uma situação séria que pode ter implicações significativas para a carreira do jogador e para a integridade competitiva da liga.",
             source: "Inven Global",
             date: new Date('2025-08-13T12:00:00Z').toISOString(),
             translated: true
         },
         {
-            title: "Nexon Revela Woochi the Wayfarer, um RPG de Ação da Era Joseon Baseado em Jeon Woo-chi",
-            url: "https://www.invenglobal.com/articles/19570/nexon-reveals-woochi-the-wayfarer-a-joseon-era-action-rpg-based-on-jeon-woo-chi",
-            content: "Conteúdo não disponível. Acesse o link da notícia para ler a íntegra.",
+            title: "T1 Keria sobre Domínio na Bot Lane e 700ª Vitória LCK do Faker Após Varrer KT Rolster",
+            url: "https://www.invenglobal.com/articles/19570/t1-keria-on-bot-lane-dominance-and-fakers-700th-lck-victory-after-sweep-of-kt-rolster",
+            content: "O suporte da T1, Ryu 'Keria' Min-seok, participou da entrevista pós-partida após a equipe varrer o KT Rolster por 2-0 na Rodada 4 da temporada regular da LCK 2025, conquistando sua 17ª vitória. Ele refletiu sobre o domínio da dupla bot lane e o marco histórico de Faker alcançando 700 vitórias na LCK. Keria destacou a importância da comunicação e sinergia com seu ADC, bem como o papel fundamental que Faker continua desempenhando na equipe mesmo após tantos anos de carreira. A vitória consolida a posição da T1 como uma das principais candidatas aos playoffs.",
             source: "Inven Global",
-            date: new Date('2025-08-08T10:00:00Z').toISOString(),
+            date: new Date('2025-08-13T10:00:00Z').toISOString(),
             translated: true
         },
         {
-            title: "Neowiz Acelera Desenvolvimento da Sequência de Lies of P e Inicia Recrutamento de Pessoal",
-            url: "https://www.invenglobal.com/articles/19569/neowiz-accelerates-development-of-lies-of-p-sequel-begins-recruiting-core-personnel",
-            content: "Conteúdo não disponível. Acesse o link da notícia para ler a íntegra.",
+            title: "Finais da LCK 2025 Serão Transmitidas ao Vivo na MBC em Primeira Histórica para Esports Coreanos",
+            url: "https://www.invenglobal.com/articles/19569/2025-lck-finals-to-air-live-on-mbc-in-historic-first-for-korean-esports",
+            content: "A Liga dos Campeões da Coreia fará sua estreia na TV terrestre no próximo mês, com as Finais da LCK 2025 programadas para serem transmitidas ao vivo na emissora sul-coreana MBC. A melhor de cinco séries começa às 14h KST no domingo. Este é um marco histórico para os esports coreanos, representando o reconhecimento mainstream do League of Legends como um esporte legítimo. A transmissão na TV aberta deve aumentar significativamente a audiência e a exposição dos esports para o público geral coreano.",
             source: "Inven Global",
-            date: new Date('2025-08-08T09:00:00Z').toISOString(),
+            date: new Date('2025-08-13T09:00:00Z').toISOString(),
             translated: true
         },
         {
-            title: "Viper Reflete Sobre o Marco de 500 Jogos na LCK",
-            url: "https://www.invenglobal.com/articles/19567/viper-reflects-on-upcoming-500-game-lck-milestone",
-            content: "Conteúdo não disponível. Acesse o link da notícia para ler a íntegra.",
+            title: "Riot Games Define Lançamento em Setembro para Skins do Mundial da T1",
+            url: "https://www.invenglobal.com/articles/19567/riot-games-sets-september-launch-for-t1-worlds-skins",
+            content: "A Riot Games anunciou que lançará skins comemorativas para a T1, vencedores do Campeonato Mundial de League of Legends de 2024, em setembro. A notícia foi divulgada em uma atualização de desenvolvedor publicada em agosto. As skins celebrarão a conquista histórica da T1 e incluirão designs únicos para cada jogador da equipe campeã. Os fãs aguardam ansiosamente por esses itens colecionáveis que marcarão para sempre a vitória da T1 no cenário mundial.",
             source: "Inven Global",
-            date: new Date('2025-08-08T08:00:00Z').toISOString(),
+            date: new Date('2025-08-13T08:00:00Z').toISOString(),
             translated: true
         },
         {
-            title: "Arsenal Renova Acordo com Konami eFootball, Nomeando Martin Ødegaard como Embaixador",
-            url: "https://www.invenglobal.com/articles/19566/arsenal-renews-konami-efootball-deal-as-martin-odegaard-named-ambassador",
-            content: "Conteúdo não disponível. Acesse o link da notícia para ler a íntegra.",
+            title: "LazyFeel da DRX Participa de Banquete de Estado Coreia-Vietnã, Fazendo História na LCK",
+            url: "https://www.invenglobal.com/articles/19566/drxs-lazyfeel-attends-korea-vietnam-state-banquet-making-lck-history",
+            content: "A organização de esports DRX anunciou na segunda-feira que seu jogador de League of Legends Trần Bảo Minh, conhecido no jogo como 'LazyFeel', participou do banquete de estado Coreia-Vietnã em 11 de agosto. Este evento marca um momento histórico para a LCK, sendo a primeira vez que um jogador profissional de League of Legends participa de um evento diplomático oficial de tal magnitude. A presença de LazyFeel simboliza o crescente reconhecimento dos esports como uma ponte cultural entre nações.",
             source: "Inven Global",
-            date: new Date('2025-08-08T07:00:00Z').toISOString(),
+            date: new Date('2025-08-13T07:00:00Z').toISOString(),
             translated: true
         }
     ];
@@ -274,42 +356,17 @@ export default async function handler(req, res) {
 
     try {
         console.log('API /api/news: Buscando notícias do Inven Global...');
-        const response = await fetch('https://www.invenglobal.com/rss.xml', {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; NewsBot/1.0)'
-            }
+        
+        // Tentar fazer scraping direto da página
+        let news = await scrapeInvenGlobalNews();
+        
+        // Filtrar notícias a partir de 13/08/2025
+        const cutoffDate = new Date('2025-08-13T00:00:00Z');
+        news = news.filter(item => {
+            const newsDate = new Date(item.date);
+            return newsDate >= cutoffDate;
         });
-        if (!response.ok) throw new Error(`Falha ao acessar RSS: ${response.status}`);
-
-        const xmlText = await response.text();
-        const news = await parseRSS(xmlText, 'Inven Global');
 
         if (news.length === 0) {
-            console.warn('Nenhuma notícia encontrada no RSS. Usando fallback.');
-            const staticNews = getStaticNews();
-            return res.status(200).json({
-                success: true,
-                news: staticNews,
-                timestamp: new Date().toISOString(),
-                total: staticNews.length,
-                note: 'Notícias estáticas (fallback) do Inven Global'
-            });
-        }
-
-        console.log(`API /api/news: Retornando ${news.length} notícias`);
-        res.status(200).json({
-            success: true,
-            news: news.slice(0, 5), // Limitar a 5 notícias
-            timestamp: new Date().toISOString(),
-            total: news.length,
-            note: 'Notícias diárias do Inven Global'
-        });
-    } catch (error) {
-        console.error('API /api/news: Erro:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Erro interno do servidor',
-            timestamp: new Date().toISOString()
-        });
-    }
-}
+      
+(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
