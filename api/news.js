@@ -368,5 +368,21 @@ export default async function handler(req, res) {
         });
 
         if (news.length === 0) {
-      
-(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
+            console.log('API /api/news: Nenhuma notícia recente encontrada, retornando notícias estáticas');
+            news = getStaticNews();
+        }
+
+        // Retornar resposta de sucesso
+        return res.status(200).json({
+            success: true,
+            news,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('API /api/news: Erro ao processar requisição:', error);
+        return res.status(500).json({
+            success: false,
+            error: `Erro interno do servidor: ${error.message}`
+        });
+    }
+}
