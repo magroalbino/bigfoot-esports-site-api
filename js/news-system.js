@@ -110,21 +110,23 @@ class NewsSystem {
 
     loadFallbackNews() {
         console.log('Carregando notícias fallback...');
+        const today = new Date('2025-08-13');
+        
         const fallbackNews = [
             {
-                title: "Riot Games Define Lançamento das Skins do T1 para Setembro",
-                url: "https://www.invenglobal.com/lol/articles/19564/riot-games-sets-september-launch-for-t1-worlds-skins",
-                content: "A Riot Games anunciou oficialmente que as muito aguardadas skins do T1, equipe campeã mundial de League of Legends, serão lançadas em setembro de 2024. As skins celebram a vitória histórica da equipe sul-coreana no Mundial de 2023, onde derrotaram adversários de peso em uma final emocionante que ficará marcada na história dos esports.\n\nCada skin foi cuidadosamente desenvolvida para refletir a identidade única e o estilo de jogo de cada jogador do T1. As skins apresentam efeitos visuais completamente únicos que homenageiam as performances excepcionais dos jogadores durante o torneio mundial.\n\nA comunidade global de League of Legends está extremamente ansiosa pelo lançamento, com fãs especulando sobre possíveis eventos in-game especiais que podem acompanhar o lançamento das skins.",
+                title: "Equipe da LPL FPX Suspende Milkyway Indefinidamente por Alegações de Vazamento de Pick-Ban",
+                url: "https://www.invenglobal.com/articles/19570/lpl-team-fpx-suspends-milkyway-indefinitely-over-pick-ban-leak-allegations",
+                content: "A equipe profissional chinesa da LPL, FPX Esports Club, suspendeu indefinidamente seu jogador Cai \"milkyway\" Zi-Jun. A suspensão ocorreu após alegações de que ele estava envolvido em manipulação de partidas e vazamento de informações estratégicas.\n\nDe acordo com fontes da liga, as alegações envolvem o vazamento de informações de pick-ban para terceiros, o que é considerado uma violação grave das regras de integridade competitiva da LPL.",
                 source: "Inven Global",
-                date: new Date().toISOString(),
+                date: today.toISOString(),
                 translated: true
             },
             {
-                title: "Gen.G Garante Vaga Direta nos Playoffs da LCK",
-                url: "https://www.invenglobal.com/lol/articles/19556/geng-clinch-direct-playoffs-entry",
-                content: "A formidável equipe Gen.G conquistou uma sequência absolutamente impressionante de quatro vitórias consecutivas dominantes na 4ª rodada da LCK, garantindo matematicamente sua classificação direta para os playoffs.\n\nLiderados pelo fenomenal mid laner Chovy e pelo veterano experiente Canyon, a Gen.G mostrou um nível de coordenação e execução tática que tem impressionado analistas e fãs igualmente.\n\nOs fãs estão extremamente confiantes de que a equipe tem todas as ferramentas necessárias para dominar os playoffs domésticos e representar a Coreia do Sul no próximo Campeonato Mundial.",
+                title: "Keria do T1 Sobre Dominância na Bot Lane e 700ª Vitória de Faker na LCK",
+                url: "https://www.invenglobal.com/articles/19569/t1-keria-on-bot-lane-dominance-and-fakers-700th-lck-victory-after-sweep-of-kt-rolster",
+                content: "O suporte Ryu \"Keria\" Min-seok do T1 refletiu sobre a impressionante vitória por 2-0 contra o KT Rolster, que marcou a 700ª vitória de Faker na LCK - um marco histórico sem precedentes no cenário competitivo.\n\nKeria elogiou a coordenação excepcional da bot lane com Gumayusi, destacando como sua sinergia tem sido fundamental para o sucesso recente da equipe.",
                 source: "Inven Global",
-                date: new Date(Date.now() - 3600000).toISOString(),
+                date: new Date(today.getTime() - 3600000).toISOString(),
                 translated: true
             }
         ];
@@ -173,10 +175,25 @@ class NewsSystem {
     createNewsCard(news, index) {
         const date = new Date(news.date).toLocaleString('pt-BR');
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        // Extrair apenas o primeiro parágrafo do conteúdo para preview
-        const firstParagraph = news.content ? this.sanitizeHtml(news.content.split('\n')[0]) : '';
-        const preview = firstParagraph.length > 150 ? firstParagraph.substring(0, 150) + '...' : firstParagraph;
-        const content = preview ? `<div class="news-card-content-wrapper"><p class="news-card-content">${preview}</p></div>` : '';
+        
+        // Extrair apenas a primeira frase do conteúdo para preview
+        let firstSentence = '';
+        if (news.content) {
+            const content = this.sanitizeHtml(news.content);
+            // Encontrar a primeira frase (terminada por ponto, exclamação ou interrogação)
+            const sentenceMatch = content.match(/^[^.!?]*[.!?]/);
+            if (sentenceMatch) {
+                firstSentence = sentenceMatch[0].trim();
+            } else {
+                // Se não encontrar uma frase completa, usar os primeiros 100 caracteres
+                firstSentence = content.substring(0, 100);
+                if (content.length > 100) {
+                    firstSentence += '...';
+                }
+            }
+        }
+        
+        const preview = firstSentence ? `<div class="news-card-content-wrapper"><p class="news-card-content">${firstSentence}</p></div>` : '';
         
         return `
             <div class="news-card" id="news-card-${index}" style="cursor: pointer;">
@@ -188,13 +205,13 @@ class NewsSystem {
                     <h3 class="news-card-title">${this.sanitizeHtml(news.title)}</h3>
                     <div class="news-card-date">${date}</div>
                 </div>
-                ${content}
+                ${preview}
                 <div class="news-card-footer">
                     <a href="${this.sanitizeHtml(news.url)}" target="_blank" class="news-card-source-link" onclick="event.stopPropagation();">
                         Fonte: ${this.sanitizeHtml(news.source)}
                     </a>
                     <div class="news-card-read-more">
-                        <span>Clique para ler mais...</span>
+                        <span>📖 Clique para ler a notícia completa</span>
                     </div>
                 </div>
             </div>
