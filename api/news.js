@@ -109,7 +109,7 @@ async function scrapeNewsContent(url) {
         const $ = cheerio.load(html);
         
         // Seletor para o conteúdo principal do artigo (ajuste conforme o HTML do Inven Global)
-        const contentElement = $('.article-content, .post-content, article p');
+        const contentElement = $('.content-body, .article-content, .post-content, article p');
         let content = contentElement
             .map((i, el) => $(el).text().trim())
             .get()
@@ -118,7 +118,7 @@ async function scrapeNewsContent(url) {
         
         if (!content) {
             console.warn(`Nenhum conteúdo encontrado em: ${url}`);
-            content = 'Conteúdo não disponível.';
+            content = 'Conteúdo não disponível. Acesse o link da notícia para ler a íntegra.';
         }
 
         // Limpar conteúdo
@@ -201,10 +201,10 @@ async function parseJSON(data, sourceName) {
     }
 }
 
-// Notícias estáticas como fallback (baseadas em)[](https://www.invenglobal.com/latest)
+// Notícias estáticas como fallback
 export function getStaticNews() {
     console.log('getStaticNews: Gerando notícias estáticas...');
-    const today = new Date();
+    const today = new Date('2025-08-14T00:00:00-03:00');
     const news = [
         {
             title: "BLAST e Singapore Tourism Board Assinam Acordo Plurianual para Eventos de Esports",
