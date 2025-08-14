@@ -3,6 +3,8 @@ class NewsSystem {
         this.apiUrl = '/api/news';
         this.autoRefresh = true;
         this.refreshInterval = null;
+        this.refreshIntervalTime = 180000; // 3 minutos (mais frequente para detectar novas notícias)
+        this.lastNewsCount = 0;
         this.init();
     }
 
@@ -98,6 +100,13 @@ class NewsSystem {
 
             if (data.success && data.news) {
                 console.log(`Exibindo ${data.news.length} notícias`);
+                
+                // Verificar se há novas notícias
+                if (data.news.length > this.lastNewsCount && this.lastNewsCount > 0) {
+                    this.showNewNewsNotification(data.news.length - this.lastNewsCount);
+                }
+                this.lastNewsCount = data.news.length;
+                
                 this.displayNews(data.news);
                 this.updateStats(data.news.length, data.timestamp);
             } else {
@@ -112,6 +121,40 @@ class NewsSystem {
         } finally {
             this.hideLoading();
         }
+    }
+
+    showNewNewsNotification(count) {
+        // Criar notificação visual para novas notícias
+        const notification = document.createElement('div');
+        notification.className = 'new-news-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-icon">🔔</span>
+                <span class="notification-text">${count} nova${count > 1 ? 's' : ''} notícia${count > 1 ? 's' : ''} disponível${count > 1 ? 'is' : ''}!</span>
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Remover automaticamente após 5 segundos
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
     }
 
     loadFallbackNews() {
@@ -165,8 +208,14 @@ class NewsSystem {
         let firstSentence = '';
         if (news.content) {
             const content = this.sanitizeHtml(news.content);
+            // Melhor extração da primeira frase
             const sentenceMatch = content.match(/^[^.!?]*[.!?]/);
-            firstSentence = sentenceMatch ? sentenceMatch[0].trim() : content.substring(0, 100) + (content.length > 100 ? '...' : '');
+            if (sentenceMatch) {
+                firstSentence = sentenceMatch[0].trim();
+            } else {
+                // Se não encontrar uma frase completa, pegar até 150 caracteres
+                firstSentence = content.substring(0, 150) + (content.length > 150 ? '...' : '');
+            }
         }
 
         const preview = firstSentence ? `<div class="news-card-content-wrapper"><p class="news-card-content">${firstSentence}</p></div>` : '';
@@ -285,7 +334,7 @@ class NewsSystem {
             loadingContainer.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p>Carregando notícias...</p>
+                    <p>Carregando notícias do Inven Global...</p>
                 </div>
             `;
         }
@@ -327,8 +376,8 @@ class NewsSystem {
             this.refreshInterval = setInterval(() => {
                 console.log('Auto-refresh executado');
                 this.loadNews();
-            }, 300000);
-            console.log('Auto-refresh iniciado (5 minutos)');
+            }, this.refreshIntervalTime);
+            console.log(`Auto-refresh iniciado (${this.refreshIntervalTime / 1000} segundos)`);
         }
     }
 
@@ -362,8 +411,68 @@ class NewsSystem {
             console.log('Auto-refresh ativado');
         }
     }
+
+    // Método para verificar se há novas notícias sem recarregar a página
+    async checkForNewNews() {
+        try {
+            const response = await fetch(this.apiUrl);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.news && data.news.length > this.lastNewsCount) {
+                    return data.news.length - this.lastNewsCount;
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao verificar novas notícias:', error);
+        }
+        return 0;
+    }
 }
 
 // Tornar disponível globalmente
 window.NewsSystem = NewsSystem;
 window.newsSystem = new NewsSystem();
+
+// Adicionar estilos CSS para notificações
+const notificationStyles = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .new-news-notification {
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .notification-icon {
+        font-size: 18px;
+    }
+    
+    .notification-text {
+        flex: 1;
+        font-weight: 500;
+    }
+    
+    .notification-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        displ
+(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
