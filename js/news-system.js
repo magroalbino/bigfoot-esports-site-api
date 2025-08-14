@@ -61,6 +61,13 @@ class NewsSystem {
                 }
             });
         }
+
+        // Fechar modal com tecla ESC
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                this.hideModal();
+            }
+        });
     }
 
     async loadNews() {
@@ -107,7 +114,7 @@ class NewsSystem {
             {
                 title: "Riot Games Define Lançamento das Skins do T1 para Setembro",
                 url: "https://www.invenglobal.com/lol/articles/19564/riot-games-sets-september-launch-for-t1-worlds-skins",
-                content: "A Riot Games anunciou que as novas skins do T1, campeão mundial, serão lançadas em setembro.\n\nCada skin reflete a identidade de um jogador do T1.",
+                content: "A Riot Games anunciou oficialmente que as muito aguardadas skins do T1, equipe campeã mundial de League of Legends, serão lançadas em setembro de 2024. As skins celebram a vitória histórica da equipe sul-coreana no Mundial de 2023, onde derrotaram adversários de peso em uma final emocionante que ficará marcada na história dos esports.\n\nCada skin foi cuidadosamente desenvolvida para refletir a identidade única e o estilo de jogo de cada jogador do T1. As skins apresentam efeitos visuais completamente únicos que homenageiam as performances excepcionais dos jogadores durante o torneio mundial.\n\nA comunidade global de League of Legends está extremamente ansiosa pelo lançamento, com fãs especulando sobre possíveis eventos in-game especiais que podem acompanhar o lançamento das skins.",
                 source: "Inven Global",
                 date: new Date().toISOString(),
                 translated: true
@@ -115,7 +122,7 @@ class NewsSystem {
             {
                 title: "Gen.G Garante Vaga Direta nos Playoffs da LCK",
                 url: "https://www.invenglobal.com/lol/articles/19556/geng-clinch-direct-playoffs-entry",
-                content: "A equipe Gen.G conquistou uma sequência impressionante de vitórias consecutivas.\n\nLiderados por Chovy, a equipe está pronta para os playoffs.",
+                content: "A formidável equipe Gen.G conquistou uma sequência absolutamente impressionante de quatro vitórias consecutivas dominantes na 4ª rodada da LCK, garantindo matematicamente sua classificação direta para os playoffs.\n\nLiderados pelo fenomenal mid laner Chovy e pelo veterano experiente Canyon, a Gen.G mostrou um nível de coordenação e execução tática que tem impressionado analistas e fãs igualmente.\n\nOs fãs estão extremamente confiantes de que a equipe tem todas as ferramentas necessárias para dominar os playoffs domésticos e representar a Coreia do Sul no próximo Campeonato Mundial.",
                 source: "Inven Global",
                 date: new Date(Date.now() - 3600000).toISOString(),
                 translated: true
@@ -166,25 +173,29 @@ class NewsSystem {
     createNewsCard(news, index) {
         const date = new Date(news.date).toLocaleString('pt-BR');
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        // Extrair apenas o primeiro parágrafo do conteúdo
-        const firstParagraph = news.content ? window.AppUtils.sanitizeHtml(news.content.split('\n')[0]) : '';
-        const content = firstParagraph ? `<div class="news-card-content-wrapper"><p class="news-card-content">${firstParagraph}</p></div>` : '';
+        // Extrair apenas o primeiro parágrafo do conteúdo para preview
+        const firstParagraph = news.content ? this.sanitizeHtml(news.content.split('\n')[0]) : '';
+        const preview = firstParagraph.length > 150 ? firstParagraph.substring(0, 150) + '...' : firstParagraph;
+        const content = preview ? `<div class="news-card-content-wrapper"><p class="news-card-content">${preview}</p></div>` : '';
         
         return `
             <div class="news-card" id="news-card-${index}" style="cursor: pointer;">
                 <div class="news-card-header">
                     <div class="news-card-source">
-                        ${window.AppUtils.sanitizeHtml(news.source)}
+                        ${this.sanitizeHtml(news.source)}
                         ${translationBadge}
                     </div>
-                    <h3 class="news-card-title">${window.AppUtils.sanitizeHtml(news.title)}</h3>
+                    <h3 class="news-card-title">${this.sanitizeHtml(news.title)}</h3>
                     <div class="news-card-date">${date}</div>
                 </div>
                 ${content}
                 <div class="news-card-footer">
-                    <a href="${window.AppUtils.sanitizeHtml(news.url)}" target="_blank" class="news-card-source-link">
-                        Fonte: ${window.AppUtils.sanitizeHtml(news.source)}
+                    <a href="${this.sanitizeHtml(news.url)}" target="_blank" class="news-card-source-link" onclick="event.stopPropagation();">
+                        Fonte: ${this.sanitizeHtml(news.source)}
                     </a>
+                    <div class="news-card-read-more">
+                        <span>Clique para ler mais...</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -199,24 +210,78 @@ class NewsSystem {
         const modalSourceLink = document.getElementById('modalSourceLink');
 
         if (modal && modalTitle && modalSource && modalDate && modalContent && modalSourceLink) {
-            modalTitle.textContent = window.AppUtils.sanitizeHtml(news.title);
-            modalSource.textContent = window.AppUtils.sanitizeHtml(news.source);
+            modalTitle.textContent = news.title;
+            modalSource.textContent = news.source;
             modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
-            // Exibir o conteúdo completo, com parágrafos
-            const paragraphs = window.AppUtils.sanitizeHtml(news.content).split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
-            modalContent.innerHTML = paragraphs;
-            modalSourceLink.href = window.AppUtils.sanitizeHtml(news.url);
-            modalSourceLink.textContent = `Fonte: ${window.AppUtils.sanitizeHtml(news.source)}`;
+            
+            // Processar o conteúdo completo preservando parágrafos
+            const fullContent = this.processFullContent(news.content);
+            modalContent.innerHTML = fullContent;
+            
+            modalSourceLink.href = news.url;
+            modalSourceLink.textContent = `Fonte: ${news.source}`;
+            modalSourceLink.target = '_blank';
             
             modal.style.display = 'flex';
+            // Adicionar classe para animação suave
+            setTimeout(() => {
+                modal.classList.add('modal-show');
+            }, 10);
         }
+    }
+
+    processFullContent(content) {
+        if (!content) return '<p>Conteúdo não disponível.</p>';
+        
+        // Limpar e sanitizar o conteúdo
+        let processedContent = this.sanitizeHtml(content);
+        
+        // Dividir em parágrafos baseado em quebras de linha duplas ou simples
+        let paragraphs = processedContent
+            .split(/\n\s*\n|\n/) // Dividir por quebras duplas ou simples
+            .map(p => p.trim()) // Remover espaços extras
+            .filter(p => p.length > 0); // Remover parágrafos vazios
+        
+        // Se não há parágrafos definidos, criar um parágrafo único
+        if (paragraphs.length === 0) {
+            paragraphs = [processedContent];
+        }
+        
+        // Converter cada parágrafo em elemento HTML
+        const htmlParagraphs = paragraphs.map(paragraph => {
+            // Remover possíveis tags HTML residuais e limpar
+            const cleanParagraph = paragraph
+                .replace(/<[^>]*>/g, '') // Remove qualquer tag HTML
+                .replace(/&nbsp;/g, ' ') // Converte &nbsp; para espaço
+                .replace(/&amp;/g, '&') // Decodifica &amp;
+                .replace(/&lt;/g, '<') // Decodifica &lt;
+                .replace(/&gt;/g, '>') // Decodifica &gt;
+                .replace(/&quot;/g, '"') // Decodifica &quot;
+                .trim();
+            
+            return cleanParagraph ? `<p>${cleanParagraph}</p>` : '';
+        }).filter(p => p.length > 0);
+        
+        return htmlParagraphs.length > 0 ? htmlParagraphs.join('') : '<p>Conteúdo não disponível.</p>';
     }
 
     hideModal() {
         const modal = document.getElementById('newsModal');
         if (modal) {
-            modal.style.display = 'none';
+            modal.classList.remove('modal-show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
         }
+    }
+
+    sanitizeHtml(text) {
+        if (!text) return '';
+        
+        // Criar um elemento temporário para sanitização
+        const temp = document.createElement('div');
+        temp.textContent = text;
+        return temp.innerHTML;
     }
 
     updateStats(count, timestamp) {
@@ -242,6 +307,7 @@ class NewsSystem {
             loadingContainer.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
+                    <p>Carregando notícias...</p>
                 </div>
             `;
         }
@@ -260,7 +326,8 @@ class NewsSystem {
         if (errorContainer) {
             errorContainer.innerHTML = `
                 <div class="error">
-                    <strong>Erro:</strong> ${message}
+                    <strong>❌ Erro:</strong> ${message}
+                    <button onclick="newsSystem.loadNews()" class="retry-btn">🔄 Tentar Novamente</button>
                 </div>
             `;
         }
@@ -279,6 +346,7 @@ class NewsSystem {
                 console.log('Auto-refresh executado');
                 this.loadNews();
             }, 300000); // 5 minutos
+            console.log('Auto-refresh iniciado (5 minutos)');
         }
     }
 
@@ -286,6 +354,7 @@ class NewsSystem {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
             this.refreshInterval = null;
+            console.log('Auto-refresh parado');
         }
     }
 
@@ -300,6 +369,7 @@ class NewsSystem {
                 btn.classList.remove('btn-secondary');
                 btn.classList.add('btn-primary');
             }
+            console.log('Auto-refresh desativado');
         } else {
             this.autoRefresh = true;
             this.startAutoRefresh();
@@ -308,6 +378,10 @@ class NewsSystem {
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-secondary');
             }
+            console.log('Auto-refresh ativado');
         }
     }
 }
+
+// Tornar disponível globalmente
+window.NewsSystem = NewsSystem;
