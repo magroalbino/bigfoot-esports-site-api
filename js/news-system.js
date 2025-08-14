@@ -412,7 +412,6 @@ class NewsSystem {
         }
     }
 
-    // Método para verificar se há novas notícias sem recarregar a página
     async checkForNewNews() {
         try {
             const response = await fetch(this.apiUrl);
@@ -474,5 +473,13 @@ const notificationStyles = `
         padding: 0;
         width: 20px;
         height: 20px;
-        displ
-(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+`;
+
+// Aplicar os estilos ao DOM
+const styleElement = document.createElement('style');
+styleElement.textContent = notificationStyles;
+document.head.appendChild(styleElement);
