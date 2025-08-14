@@ -15,6 +15,11 @@ class NewsSystem {
     }
 
     updateCurrentDate() {
+        const currentDateEl = document.getElementById('currentDate');
+        if (!currentDateEl) {
+            console.warn('Elemento currentDate não encontrado');
+            return;
+        }
         const now = new Date();
         const options = { 
             weekday: 'long', 
@@ -22,19 +27,22 @@ class NewsSystem {
             month: 'long', 
             day: 'numeric' 
         };
-        document.getElementById('currentDate').textContent = 
-            now.toLocaleDateString('pt-BR', options);
+        currentDateEl.textContent = now.toLocaleDateString('pt-BR', options);
     }
 
     bindEvents() {
         const refreshBtn = document.getElementById('refreshBtn');
         const autoRefreshBtn = document.getElementById('autoRefreshBtn');
-        
+        const closeModal = document.getElementById('closeModal');
+        const modal = document.getElementById('newsModal');
+
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
                 console.log('Botão refresh clicado');
                 this.loadNews();
             });
+        } else {
+            console.warn('Botão refreshBtn não encontrado');
         }
 
         if (autoRefreshBtn) {
@@ -42,27 +50,26 @@ class NewsSystem {
                 console.log('Botão auto-refresh clicado');
                 this.toggleAutoRefresh();
             });
+        } else {
+            console.warn('Botão autoRefreshBtn não encontrado');
         }
 
-        // Evento para fechar o modal
-        const closeModal = document.getElementById('closeModal');
         if (closeModal) {
-            closeModal.addEventListener('click', () => {
-                this.hideModal();
-            });
+            closeModal.addEventListener('click', () => this.hideModal());
+        } else {
+            console.warn('Elemento closeModal não encontrado');
         }
 
-        // Fechar o modal ao clicar fora do conteúdo
-        const modal = document.getElementById('newsModal');
         if (modal) {
             modal.addEventListener('click', (event) => {
                 if (event.target === modal) {
                     this.hideModal();
                 }
             });
+        } else {
+            console.warn('Elemento newsModal não encontrado');
         }
 
-        // Fechar modal com tecla ESC
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 this.hideModal();
@@ -79,13 +86,13 @@ class NewsSystem {
             console.log(`Fazendo fetch para: ${this.apiUrl}`);
             const response = await fetch(this.apiUrl);
             console.log('Response status:', response.status);
-            
+
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Detalhes do erro:', errorText);
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({ error: response.statusText }));
+                console.error('Detalhes do erro:', errorData);
+                throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
             }
-            
+
             const data = await response.json();
             console.log('Dados recebidos:', data);
 
@@ -96,12 +103,11 @@ class NewsSystem {
             } else {
                 console.error('Resposta inválida:', data);
                 this.showError('Erro ao carregar notícias: ' + (data.error || 'Resposta inválida'));
+                this.loadFallbackNews();
             }
         } catch (error) {
             console.error('Erro no fetch:', error);
             this.showError('Erro de conexão: ' + error.message);
-            
-            // Fallback para notícias estáticas
             this.loadFallbackNews();
         } finally {
             this.hideLoading();
@@ -110,29 +116,15 @@ class NewsSystem {
 
     loadFallbackNews() {
         console.log('Carregando notícias fallback...');
-        const today = new Date('2025-08-13');
-        
-        const fallbackNews = [
-            {
-                title: "Equipe da LPL FPX Suspende Milkyway Indefinidamente por Alegações de Vazamento de Pick-Ban",
-                url: "https://www.invenglobal.com/articles/19570/lpl-team-fpx-suspends-milkyway-indefinitely-over-pick-ban-leak-allegations",
-                content: "A equipe profissional chinesa da LPL, FPX Esports Club, suspendeu indefinidamente seu jogador Cai \"milkyway\" Zi-Jun. A suspensão ocorreu após alegações de que ele estava envolvido em manipulação de partidas e vazamento de informações estratégicas.\n\nDe acordo com fontes da liga, as alegações envolvem o vazamento de informações de pick-ban para terceiros, o que é considerado uma violação grave das regras de integridade competitiva da LPL.",
-                source: "Inven Global",
-                date: today.toISOString(),
-                translated: true
-            },
-            {
-                title: "Keria do T1 Sobre Dominância na Bot Lane e 700ª Vitória de Faker na LCK",
-                url: "https://www.invenglobal.com/articles/19569/t1-keria-on-bot-lane-dominance-and-fakers-700th-lck-victory-after-sweep-of-kt-rolster",
-                content: "O suporte Ryu \"Keria\" Min-seok do T1 refletiu sobre a impressionante vitória por 2-0 contra o KT Rolster, que marcou a 700ª vitória de Faker na LCK - um marco histórico sem precedentes no cenário competitivo.\n\nKeria elogiou a coordenação excepcional da bot lane com Gumayusi, destacando como sua sinergia tem sido fundamental para o sucesso recente da equipe.",
-                source: "Inven Global",
-                date: new Date(today.getTime() - 3600000).toISOString(),
-                translated: true
-            }
-        ];
-        
-        this.displayNews(fallbackNews);
-        this.updateStats(fallbackNews.length, new Date().toISOString());
+        // Importar getStaticNews dinamicamente ou assumir que está disponível globalmente
+        const fallbackNews = typeof getStaticNews === 'function' ? getStaticNews() : [];
+        if (fallbackNews.length > 0) {
+            this.displayNews(fallbackNews);
+            this.updateStats(fallbackNews.length, new Date().toISOString());
+        } else {
+            console.warn('Nenhuma notícia fallback disponível');
+            this.showError('Nenhuma notícia disponível no momento');
+        }
     }
 
     displayNews(news) {
@@ -141,7 +133,7 @@ class NewsSystem {
         const emptyState = document.getElementById('emptyState');
 
         if (!container) {
-            console.error('Container newsContainer não encontrado!');
+            console.error('Container newsContainer não encontrado');
             return;
         }
 
@@ -153,48 +145,33 @@ class NewsSystem {
         }
 
         if (emptyState) emptyState.style.display = 'none';
-        
+
         const htmlContent = news.map((item, index) => this.createNewsCard(item, index)).join('');
-        console.log('HTML gerado:', htmlContent.substring(0, 200) + '...');
-        
         container.innerHTML = htmlContent;
-        
-        // Adicionar eventos de clique para abrir o modal
+
         news.forEach((item, index) => {
             const card = document.getElementById(`news-card-${index}`);
             if (card) {
-                card.addEventListener('click', () => {
-                    this.showModal(item);
-                });
+                card.addEventListener('click', () => this.showModal(item));
             }
         });
-        
+
         console.log('Notícias inseridas no DOM');
     }
 
     createNewsCard(news, index) {
         const date = new Date(news.date).toLocaleString('pt-BR');
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        
-        // Extrair apenas a primeira frase do conteúdo para preview
+
         let firstSentence = '';
         if (news.content) {
             const content = this.sanitizeHtml(news.content);
-            // Encontrar a primeira frase (terminada por ponto, exclamação ou interrogação)
             const sentenceMatch = content.match(/^[^.!?]*[.!?]/);
-            if (sentenceMatch) {
-                firstSentence = sentenceMatch[0].trim();
-            } else {
-                // Se não encontrar uma frase completa, usar os primeiros 100 caracteres
-                firstSentence = content.substring(0, 100);
-                if (content.length > 100) {
-                    firstSentence += '...';
-                }
-            }
+            firstSentence = sentenceMatch ? sentenceMatch[0].trim() : content.substring(0, 100) + (content.length > 100 ? '...' : '');
         }
-        
+
         const preview = firstSentence ? `<div class="news-card-content-wrapper"><p class="news-card-content">${firstSentence}</p></div>` : '';
-        
+
         return `
             <div class="news-card" id="news-card-${index}" style="cursor: pointer;">
                 <div class="news-card-header">
@@ -226,59 +203,48 @@ class NewsSystem {
         const modalContent = document.getElementById('modalContent');
         const modalSourceLink = document.getElementById('modalSourceLink');
 
-        if (modal && modalTitle && modalSource && modalDate && modalContent && modalSourceLink) {
-            modalTitle.textContent = news.title;
-            modalSource.textContent = news.source;
-            modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
-            
-            // Processar o conteúdo completo preservando parágrafos
-            const fullContent = this.processFullContent(news.content);
-            modalContent.innerHTML = fullContent;
-            
-            modalSourceLink.href = news.url;
-            modalSourceLink.textContent = `Fonte: ${news.source}`;
-            modalSourceLink.target = '_blank';
-            
-            modal.style.display = 'flex';
-            // Adicionar classe para animação suave
-            setTimeout(() => {
-                modal.classList.add('modal-show');
-            }, 10);
+        if (!modal || !modalTitle || !modalSource || !modalDate || !modalContent || !modalSourceLink) {
+            console.warn('Elementos do modal não encontrados');
+            return;
         }
+
+        modalTitle.textContent = news.title;
+        modalSource.textContent = news.source;
+        modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
+        modalContent.innerHTML = this.processFullContent(news.content);
+        modalSourceLink.href = news.url;
+        modalSourceLink.textContent = `Fonte: ${news.source}`;
+        modalSourceLink.target = '_blank';
+
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('modal-show'), 10);
     }
 
     processFullContent(content) {
         if (!content) return '<p>Conteúdo não disponível.</p>';
-        
-        // Limpar e sanitizar o conteúdo
+
         let processedContent = this.sanitizeHtml(content);
-        
-        // Dividir em parágrafos baseado em quebras de linha duplas ou simples
         let paragraphs = processedContent
-            .split(/\n\s*\n|\n/) // Dividir por quebras duplas ou simples
-            .map(p => p.trim()) // Remover espaços extras
-            .filter(p => p.length > 0); // Remover parágrafos vazios
-        
-        // Se não há parágrafos definidos, criar um parágrafo único
+            .split(/\n\s*\n|\n/)
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
+
         if (paragraphs.length === 0) {
             paragraphs = [processedContent];
         }
-        
-        // Converter cada parágrafo em elemento HTML
+
         const htmlParagraphs = paragraphs.map(paragraph => {
-            // Remover possíveis tags HTML residuais e limpar
             const cleanParagraph = paragraph
-                .replace(/<[^>]*>/g, '') // Remove qualquer tag HTML
-                .replace(/&nbsp;/g, ' ') // Converte &nbsp; para espaço
-                .replace(/&amp;/g, '&') // Decodifica &amp;
-                .replace(/&lt;/g, '<') // Decodifica &lt;
-                .replace(/&gt;/g, '>') // Decodifica &gt;
-                .replace(/&quot;/g, '"') // Decodifica &quot;
+                .replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
                 .trim();
-            
             return cleanParagraph ? `<p>${cleanParagraph}</p>` : '';
         }).filter(p => p.length > 0);
-        
+
         return htmlParagraphs.length > 0 ? htmlParagraphs.join('') : '<p>Conteúdo não disponível.</p>';
     }
 
@@ -286,16 +252,12 @@ class NewsSystem {
         const modal = document.getElementById('newsModal');
         if (modal) {
             modal.classList.remove('modal-show');
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 300);
+            setTimeout(() => modal.style.display = 'none', 300);
         }
     }
 
     sanitizeHtml(text) {
         if (!text) return '';
-        
-        // Criar um elemento temporário para sanitização
         const temp = document.createElement('div');
         temp.textContent = text;
         return temp.innerHTML;
@@ -304,11 +266,11 @@ class NewsSystem {
     updateStats(count, timestamp) {
         const newsCountEl = document.getElementById('newsCount');
         const lastUpdateEl = document.getElementById('lastUpdate');
-        
+
         if (newsCountEl) {
             newsCountEl.textContent = count;
         }
-        
+
         if (timestamp && lastUpdateEl) {
             const date = new Date(timestamp);
             lastUpdateEl.textContent = date.toLocaleTimeString('pt-BR', { 
@@ -344,9 +306,13 @@ class NewsSystem {
             errorContainer.innerHTML = `
                 <div class="error">
                     <strong>❌ Erro:</strong> ${message}
-                    <button onclick="newsSystem.loadNews()" class="retry-btn">🔄 Tentar Novamente</button>
+                    <button class="retry-btn">🔄 Tentar Novamente</button>
                 </div>
             `;
+            const retryBtn = errorContainer.querySelector('.retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => this.loadNews());
+            }
         }
     }
 
@@ -362,7 +328,7 @@ class NewsSystem {
             this.refreshInterval = setInterval(() => {
                 console.log('Auto-refresh executado');
                 this.loadNews();
-            }, 300000); // 5 minutos
+            }, 300000);
             console.log('Auto-refresh iniciado (5 minutos)');
         }
     }
@@ -377,7 +343,6 @@ class NewsSystem {
 
     toggleAutoRefresh() {
         const btn = document.getElementById('autoRefreshBtn');
-        
         if (this.autoRefresh) {
             this.autoRefresh = false;
             this.stopAutoRefresh();
@@ -402,3 +367,4 @@ class NewsSystem {
 
 // Tornar disponível globalmente
 window.NewsSystem = NewsSystem;
+window.newsSystem = new NewsSystem();
