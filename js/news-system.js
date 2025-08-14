@@ -116,7 +116,6 @@ class NewsSystem {
 
     loadFallbackNews() {
         console.log('Carregando notícias fallback...');
-        // Importar getStaticNews dinamicamente ou assumir que está disponível globalmente
         const fallbackNews = typeof getStaticNews === 'function' ? getStaticNews() : [];
         if (fallbackNews.length > 0) {
             this.displayNews(fallbackNews);
