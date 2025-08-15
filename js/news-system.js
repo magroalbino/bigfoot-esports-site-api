@@ -1,11 +1,12 @@
-// news-system.js
 class NewsSystem {
     constructor() {
         this.apiUrl = '/api/news';
         this.autoRefresh = true;
         this.refreshInterval = null;
-        this.refreshIntervalTime = 180000; // 3 minutos
-        this.lastNews = []; // Armazenar notícias atuais
+        this.refreshIntervalTime = 120000; // 2 minutos para detectar novas notícias mais rapidamente
+        this.lastNewsCount = 0;
+        this.lastNewsIds = new Set(); // Para rastrear notícias únicas
+        this.maxNews = 8; // Máximo de notícias a exibir
         this.init();
     }
 
@@ -18,183 +19,640 @@ class NewsSystem {
     }
 
     updateCurrentDate() {
-        const dateEl = document.getElementById('current-date');
-        if (dateEl) {
-            const now = new Date();
-            dateEl.textContent = now.toLocaleDateString('pt-BR', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+        const currentDateEl = document.getElementById('currentDate');
+        if (!currentDateEl) {
+            console.warn('Elemento currentDate não encontrado');
+            return;
         }
+        const now = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        };
+        currentDateEl.textContent = now.toLocaleDateString('pt-BR', options);
     }
 
     bindEvents() {
-        console.log('NewsSystem: Ligando eventos...');
-        const refreshBtn = document.getElementById('refresh-news-btn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+        const closeModal = document.getElementById('closeModal');
+        const modal = document.getElementById('newsModal');
+
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
-                console.log('Botão de atualizar notícias clicado');
-                this.loadNews();
+                console.log('Botão refresh clicado');
+                this.loadNews(true); // Forçar atualização
             });
         }
-    }
 
-    startAutoRefresh() {
-        if (!this.autoRefresh) return;
-        console.log(`NewsSystem: AutoRefresh ativado a cada ${this.refreshIntervalTime / 1000} segundos.`);
-        if (this.refreshInterval) clearInterval(this.refreshInterval);
-        this.refreshInterval = setInterval(() => {
-            console.log('AutoRefresh: Atualizando notícias...');
-            this.loadNews();
-        }, this.refreshIntervalTime);
-    }
-
-    showLoading() {
-        const loadingEl = document.getElementById('loading');
-        if (loadingEl) loadingEl.style.display = 'block';
-    }
-
-    hideLoading() {
-        const loadingEl = document.getElementById('loading');
-        if (loadingEl) loadingEl.style.display = 'none';
-    }
-
-    showError(message) {
-        const errorEl = document.getElementById('error-message');
-        if (errorEl) {
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
+        if (autoRefreshBtn) {
+            autoRefreshBtn.addEventListener('click', () => {
+                console.log('Botão auto-refresh clicado');
+                this.toggleAutoRefresh();
+            });
         }
+
+        if (closeModal) {
+            closeModal.addEventListener('click', () => this.hideModal());
+        }
+
+        if (modal) {
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    this.hideModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                this.hideModal();
+            }
+        });
     }
 
-    hideError() {
-        const errorEl = document.getElementById('error-message');
-        if (errorEl) errorEl.style.display = 'none';
+    // Gerar ID único para cada notícia baseado no título e URL
+    generateNewsId(news) {
+        const combined = news.title + news.url;
+        return btoa(combined).substring(0, 16);
     }
 
-    async loadNews() {
-        console.log('NewsSystem: Carregando notícias...');
+    async loadNews(forceRefresh = false) {
+        console.log('NewsSystem: Carregando notícias...', forceRefresh ? '(forçado)' : '');
         this.showLoading();
         this.hideError();
 
         try {
-            const response = await fetch(this.apiUrl);
+            const url = forceRefresh ? `${this.apiUrl}?t=${Date.now()}` : this.apiUrl;
+            console.log(`Fazendo fetch para: ${url}`);
+            const response = await fetch(url);
+            console.log('Response status:', response.status);
+
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                const errorData = await response.json().catch(() => ({ error: response.statusText }));
+                console.error('Detalhes do erro:', errorData);
+                throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('Dados recebidos:', data);
+
             if (data.success && data.news) {
-                this.updateNewsList(data.news);
-                this.displayNews(this.lastNews);
+                console.log(`Processando ${data.news.length} notícias`);
+                
+                // Processar notícias e adicionar IDs únicos
+                const processedNews = data.news.map(news => ({
+                    ...news,
+                    id: this.generateNewsId(news)
+                }));
+                
+                // Verificar se há novas notícias
+                const newNewsIds = new Set(processedNews.map(n => n.id));
+                const hasNewNews = processedNews.some(news => !this.lastNewsIds.has(news.id));
+                
+                if (hasNewNews && this.lastNewsIds.size > 0) {
+                    const newCount = processedNews.filter(news => !this.lastNewsIds.has(news.id)).length;
+                    this.showNewNewsNotification(newCount);
+                }
+                
+                // Atualizar IDs conhecidos
+                this.lastNewsIds = newNewsIds;
+                this.lastNewsCount = processedNews.length;
+                
+                // Manter apenas as notícias mais recentes
+                const recentNews = this.sortAndLimitNews(processedNews);
+                
+                this.displayNews(recentNews);
+                this.updateStats(recentNews.length, data.timestamp);
+                
             } else {
-                this.showError('Erro ao carregar notícias.');
+                console.error('Resposta inválida:', data);
+                this.showError('Erro ao carregar notícias: ' + (data.error || 'Resposta inválida'));
+                this.loadFallbackNews();
             }
         } catch (error) {
             console.error('Erro no fetch:', error);
             this.showError('Erro de conexão: ' + error.message);
+            this.loadFallbackNews();
         } finally {
             this.hideLoading();
         }
     }
 
-    updateNewsList(newNews) {
-        if (this.lastNews.length === 0) {
-            this.lastNews = newNews.slice(0, 5);
-            return;
+    sortAndLimitNews(news) {
+        // Ordenar por data (mais recentes primeiro)
+        const sorted = news.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // Limitar ao número máximo de notícias
+        return sorted.slice(0, this.maxNews);
+    }
+
+    showNewNewsNotification(count) {
+        // Criar notificação visual para novas notícias
+        const notification = document.createElement('div');
+        notification.className = 'new-news-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-icon">🔔</span>
+                <span class="notification-text">${count} nova${count > 1 ? 's' : ''} notícia${count > 1 ? 's' : ''} disponível${count > 1 ? 'is' : ''}!</span>
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3);
+            z-index: 1000;
+            animation: slideInNotification 0.4s ease-out;
+            font-family: 'Poppins', sans-serif;
+            max-width: 300px;
+        `;
+        
+        // Adicionar animação CSS se não existir
+        if (!document.getElementById('notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'notification-styles';
+            style.textContent = `
+                @keyframes slideInNotification {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                .notification-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+                .notification-icon {
+                    font-size: 20px;
+                    animation: bounce 2s infinite;
+                }
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-8px); }
+                    60% { transform: translateY(-4px); }
+                }
+                .notification-text {
+                    flex: 1;
+                    font-weight: 500;
+                    font-size: 14px;
+                }
+                .notification-close {
+                    background: rgba(255, 255, 255, 0.2);
+                    border: none;
+                    color: white;
+                    font-size: 18px;
+                    cursor: pointer;
+                    padding: 4px 8px;
+                    border-radius: 50%;
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: background 0.2s;
+                }
+                .notification-close:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                }
+            `;
+            document.head.appendChild(style);
         }
+        
+        document.body.appendChild(notification);
+        
+        // Remover automaticamente após 6 segundos
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.style.animation = 'slideOutNotification 0.3s ease-in forwards';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 6000);
+        
+        // Adicionar animação de saída
+        const exitStyle = document.createElement('style');
+        exitStyle.textContent = `
+            @keyframes slideOutNotification {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(exitStyle);
+    }
 
-        const newItems = newNews.filter(newItem => 
-            !this.lastNews.some(oldItem => oldItem.url === newItem.url)
-        );
-
-        if (newItems.length > 0) {
-            this.lastNews = [...this.lastNews, ...newItems]
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5);
+    loadFallbackNews() {
+        console.log('Carregando notícias fallback...');
+        const fallbackNews = typeof getStaticNews === 'function' ? getStaticNews() : [];
+        if (fallbackNews.length > 0) {
+            const processedNews = fallbackNews.map(news => ({
+                ...news,
+                id: this.generateNewsId(news)
+            }));
+            this.displayNews(processedNews);
+            this.updateStats(processedNews.length, new Date().toISOString());
+        } else {
+            console.warn('Nenhuma notícia fallback disponível');
+            this.showError('Nenhuma notícia disponível no momento');
         }
     }
 
-    displayNews(newsList) {
-        const container = document.getElementById('news-container');
-        if (!container) return;
-        container.innerHTML = '';
+    displayNews(news) {
+        console.log('Exibindo notícias:', news.length);
+        const container = document.getElementById('newsContainer');
+        const emptyState = document.getElementById('emptyState');
 
-        if (newsList.length === 0) {
-            container.innerHTML = '<p>Nenhuma notícia disponível no momento.</p>';
+        if (!container) {
+            console.error('Container newsContainer não encontrado');
             return;
         }
 
-        newsList.forEach((news, index) => {
-            const cardHTML = this.createNewsCard(news, index);
-            container.insertAdjacentHTML('beforeend', cardHTML);
+        if (!news || news.length === 0) {
+            console.log('Nenhuma notícia para exibir');
+            container.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+
+        const htmlContent = news.map((item, index) => this.createNewsCard(item, index)).join('');
+        container.innerHTML = htmlContent;
+
+        // Adicionar event listeners para cada card
+        news.forEach((item, index) => {
+            const card = document.getElementById(`news-card-${index}`);
+            if (card) {
+                card.addEventListener('click', (e) => {
+                    // Não abrir modal se clicou no link da fonte
+                    if (e.target.classList.contains('news-card-source-link') || 
+                        e.target.closest('.news-card-source-link')) {
+                        return;
+                    }
+                    this.showModal(item);
+                });
+            }
         });
+
+        // Lazy loading para imagens
+        this.setupLazyLoading();
+
+        console.log('Notícias inseridas no DOM');
     }
 
     createNewsCard(news, index) {
         const date = new Date(news.date).toLocaleString('pt-BR');
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
-        const image = news.image ? `<img src="${this.sanitizeHtml(news.image)}" alt="${this.sanitizeHtml(news.title)}" class="news-card-image">` : '';
 
         let firstSentence = '';
         if (news.content) {
             const content = this.sanitizeHtml(news.content);
+            // Melhor extração da primeira frase
             const sentenceMatch = content.match(/^[^.!?]*[.!?]/);
-            firstSentence = sentenceMatch ? sentenceMatch[0].trim() : content.substring(0, 150) + (content.length > 150 ? '...' : '');
+            if (sentenceMatch) {
+                firstSentence = sentenceMatch[0].trim();
+            } else {
+                // Se não encontrar uma frase completa, pegar até 180 caracteres
+                firstSentence = content.substring(0, 180) + (content.length > 180 ? '...' : '');
+            }
         }
 
-        const preview = firstSentence ? `<div class="news-card-content-wrapper"><p class="news-card-content">${firstSentence}</p></div>` : '';
+        // Usar imagem da notícia ou imagem padrão
+        const imageUrl = news.image || 'https://www.invenglobal.com/img/ig-logo-light.png';
+        
+        const preview = firstSentence ? 
+            `<div class="news-card-content-wrapper">
+                <p class="news-card-content">${firstSentence}</p>
+            </div>` : '';
 
         return `
-            <div class="news-card" id="news-card-${index}" style="cursor: pointer;">
-                ${image}
-                <div class="news-card-header">
-                    <div class="news-card-source">
-                        ${this.sanitizeHtml(news.source)}
-                        ${translationBadge}
-                    </div>
-                    <h3 class="news-card-title">${this.sanitizeHtml(news.title)}</h3>
-                    <div class="news-card-date">${date}</div>
+            <div class="news-card" id="news-card-${index}" style="cursor: pointer;" data-news-id="${news.id || index}">
+                <div class="news-card-image-container">
+                    <img 
+                        class="news-card-image lazy-load" 
+                        data-src="${this.sanitizeHtml(imageUrl)}" 
+                        alt="${this.sanitizeHtml(news.title)}"
+                        loading="lazy"
+                    />
+                    <div class="news-card-image-overlay"></div>
                 </div>
-                ${preview}
-                <div class="news-card-footer">
-                    <a href="${this.sanitizeHtml(news.url)}" target="_blank" class="news-card-source-link" onclick="event.stopPropagation();">
-                        Fonte: ${this.sanitizeHtml(news.source)}
-                    </a>
+                <div class="news-card-body">
+                    <div class="news-card-header">
+                        <div class="news-card-source">
+                            ${this.sanitizeHtml(news.source)}
+                            ${translationBadge}
+                        </div>
+                        <h3 class="news-card-title">${this.sanitizeHtml(news.title)}</h3>
+                        <div class="news-card-date">
+                            <span class="date-icon">📅</span>
+                            ${date}
+                        </div>
+                    </div>
+                    ${preview}
+                    <div class="news-card-footer">
+                        <a href="${this.sanitizeHtml(news.url)}" target="_blank" class="news-card-source-link" onclick="event.stopPropagation();">
+                            <span class="link-icon">🔗</span>
+                            Fonte: ${this.sanitizeHtml(news.source)}
+                        </a>
+                        <div class="news-card-read-more">
+                            <span class="read-icon">📖</span>
+                            <span>Ler completa</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    sanitizeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>"']/g, match => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        }[match]));
+    setupLazyLoading() {
+        const images = document.querySelectorAll('.lazy-load');
+        
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    
+                    if (src) {
+                        img.src = src;
+                        img.classList.remove('lazy-load');
+                        img.classList.add('loaded');
+                        
+                        img.onload = () => {
+                            img.style.opacity = '1';
+                        };
+                        
+                        img.onerror = () => {
+                            img.src = 'https://www.invenglobal.com/img/ig-logo-light.png';
+                            img.style.opacity = '1';
+                        };
+                    }
+                    
+                    observer.unobserve(img);
+                }
+            });
+        });
+
+        images.forEach(img => imageObserver.observe(img));
     }
 
-    addStyles() {
-        const styleElement = document.createElement('style');
-        styleElement.textContent = `
-            .news-card-image {
-                width: 100%;
-                height: 200px;
-                object-fit: cover;
-                border-radius: 8px 8px 0 0;
-                margin-bottom: 10px;
+    showModal(news) {
+        const modal = document.getElementById('newsModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSource = document.getElementById('modalSource');
+        const modalDate = document.getElementById('modalDate');
+        const modalContent = document.getElementById('modalContent');
+        const modalSourceLink = document.getElementById('modalSourceLink');
+        const modalImage = document.getElementById('modalImage');
+
+        if (!modal || !modalTitle || !modalSource || !modalDate || !modalContent || !modalSourceLink) {
+            console.warn('Elementos do modal não encontrados');
+            return;
+        }
+
+        modalTitle.textContent = news.title;
+        modalSource.textContent = news.source;
+        modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
+        modalContent.innerHTML = this.processFullContent(news.content);
+        modalSourceLink.href = news.url;
+        modalSourceLink.textContent = `Ler artigo original no ${news.source}`;
+        modalSourceLink.target = '_blank';
+
+        // Adicionar imagem ao modal se existir
+        if (modalImage && news.image) {
+            modalImage.src = news.image;
+            modalImage.style.display = 'block';
+            modalImage.alt = news.title;
+        } else if (modalImage) {
+            modalImage.style.display = 'none';
+        }
+
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Prevenir scroll da página
+        setTimeout(() => modal.classList.add('modal-show'), 10);
+    }
+
+    processFullContent(content) {
+        if (!content) return '<p>Conteúdo não disponível.</p>';
+
+        let processedContent = this.sanitizeHtml(content);
+        
+        // Dividir em parágrafos mantendo títulos
+        let paragraphs = processedContent
+            .split(/\n\s*\n|\n/)
+            .map(p => p.trim())
+            .filter(p => p.length > 10); // Filtrar parágrafos muito curtos
+
+        if (paragraphs.length === 0) {
+            // Fallback: dividir por pontos se não há quebras de linha
+            paragraphs = processedContent
+                .split(/\.\s+/)
+                .map(p => p.trim())
+                .filter(p => p.length > 20)
+                .map(p => p.endsWith('.') ? p : p + '.');
+        }
+
+        const htmlParagraphs = paragraphs.map(paragraph => {
+            const cleanParagraph = paragraph
+                .replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .trim();
+            
+            // Detectar se é um título (começa com ##)
+            if (cleanParagraph.startsWith('## ')) {
+                const titleText = cleanParagraph.substring(3);
+                return `<h3 class="content-subtitle">${titleText}</h3>`;
             }
-        `;
-        document.head.appendChild(styleElement);
+            
+            return cleanParagraph ? `<p class="content-paragraph">${cleanParagraph}</p>` : '';
+        }).filter(p => p.length > 0);
+
+        return htmlParagraphs.length > 0 ? htmlParagraphs.join('') : '<p>Conteúdo não disponível.</p>';
+    }
+
+    hideModal() {
+        const modal = document.getElementById('newsModal');
+        if (modal) {
+            modal.classList.remove('modal-show');
+            document.body.style.overflow = ''; // Restaurar scroll da página
+            setTimeout(() => modal.style.display = 'none', 300);
+        }
+    }
+
+    sanitizeHtml(text) {
+        if (!text) return '';
+        const temp = document.createElement('div');
+        temp.textContent = text;
+        return temp.innerHTML;
+    }
+
+    updateStats(count, timestamp) {
+        const newsCountEl = document.getElementById('newsCount');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+
+        if (newsCountEl) {
+            // Animação no contador
+            const currentCount = parseInt(newsCountEl.textContent) || 0;
+            if (count !== currentCount) {
+                this.animateCounter(newsCountEl, currentCount, count);
+            }
+        }
+
+        if (timestamp && lastUpdateEl) {
+            const date = new Date(timestamp);
+            lastUpdateEl.textContent = date.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+    }
+
+    animateCounter(element, start, end) {
+        const duration = 1000;
+        const increment = (end - start) / (duration / 16);
+        let current = start;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                current = end;
+                clearInterval(timer);
+            }
+            element.textContent = Math.round(current);
+        }, 16);
+    }
+
+    showLoading() {
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            loadingContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Buscando as últimas notícias do Inven Global...</p>
+                    <div class="loading-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    hideLoading() {
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            loadingContainer.innerHTML = '';
+        }
+    }
+
+    showError(message) {
+        console.error('Erro exibido:', message);
+        const errorContainer = document.getElementById('errorContainer');
+        if (errorContainer) {
+            errorContainer.innerHTML = `
+                <div class="error">
+                    <span class="error-icon">⚠️</span>
+                    <div class="error-content">
+                        <strong>Erro ao carregar notícias</strong>
+                        <p>${message}</p>
+                    </div>
+                    <button class="retry-btn">🔄 Tentar Novamente</button>
+                </div>
+            `;
+            const retryBtn = errorContainer.querySelector('.retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => this.loadNews(true));
+            }
+        }
+    }
+
+    hideError() {
+        const errorContainer = document.getElementById('errorContainer');
+        if (errorContainer) {
+            errorContainer.innerHTML = '';
+        }
+    }
+
+    startAutoRefresh() {
+        if (this.autoRefresh) {
+            this.refreshInterval = setInterval(() => {
+                console.log('Auto-refresh executado');
+                this.loadNews();
+            }, this.refreshIntervalTime);
+            console.log(`Auto-refresh iniciado (${this.refreshIntervalTime / 1000} segundos)`);
+        }
+    }
+
+    stopAutoRefresh() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+            console.log('Auto-refresh parado');
+        }
+    }
+
+    toggleAutoRefresh() {
+        const btn = document.getElementById('autoRefreshBtn');
+        if (this.autoRefresh) {
+            this.autoRefresh = false;
+            this.stopAutoRefresh();
+            if (btn) {
+                btn.innerHTML = '⏰ Auto: <span style="color: #f44336;">OFF</span>';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-warning');
+            }
+            console.log('Auto-refresh desativado');
+        } else {
+            this.autoRefresh = true;
+            this.startAutoRefresh();
+            if (btn) {
+                btn.innerHTML = '⏰ Auto: <span style="color: #4CAF50;">ON</span>';
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-secondary');
+            }
+            console.log('Auto-refresh ativado');
+        }
     }
 }
 
 // Tornar disponível globalmente
 window.NewsSystem = NewsSystem;
-window.newsSystem = new NewsSystem();
-window.newsSystem.addStyles();
+
+// Inicializar sistema quando DOM estiver pronto
+document.addEventListener('DOMContentLoaded', () => {
+    window.newsSystem = new NewsSystem();
+});
+
+// Fallback para inicialização imediata se DOM já estiver carregado
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.newsSystem) {
+            window.newsSystem = new NewsSystem();
+        }
+    });
+} else {
+    if (!window.newsSystem) {
+        window.newsSystem = new NewsSystem();
+    }
+}
