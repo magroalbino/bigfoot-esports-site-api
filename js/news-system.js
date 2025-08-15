@@ -12,20 +12,9 @@ class NewsSystem {
     init() {
         console.log('NewsSystem: Inicializando...');
         this.updateCurrentDate();
-
-        if (typeof this.bindEvents === 'function') {
-            this.bindEvents();
-        } else {
-            console.warn('bindEvents() não está implementado.');
-        }
-
+        this.bindEvents();
         this.loadNews();
-
-        if (typeof this.startAutoRefresh === 'function') {
-            this.startAutoRefresh();
-        } else {
-            console.warn('startAutoRefresh() não está implementado.');
-        }
+        this.startAutoRefresh();
     }
 
     updateCurrentDate() {
@@ -41,6 +30,32 @@ class NewsSystem {
         } else {
             console.warn('Elemento #current-date não encontrado no HTML.');
         }
+    }
+
+    bindEvents() {
+        console.log('NewsSystem: Ligando eventos...');
+        const refreshBtn = document.getElementById('refresh-news-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                console.log('Botão de atualizar notícias clicado');
+                this.loadNews();
+            });
+        } else {
+            console.warn('Botão #refresh-news-btn não encontrado.');
+        }
+    }
+
+    startAutoRefresh() {
+        if (!this.autoRefresh) {
+            console.log('AutoRefresh desativado.');
+            return;
+        }
+        console.log(`NewsSystem: AutoRefresh ativado a cada ${this.refreshIntervalTime / 1000} segundos.`);
+        if (this.refreshInterval) clearInterval(this.refreshInterval);
+        this.refreshInterval = setInterval(() => {
+            console.log('AutoRefresh: Atualizando notícias...');
+            this.loadNews();
+        }, this.refreshIntervalTime);
     }
 
     async loadNews() {
