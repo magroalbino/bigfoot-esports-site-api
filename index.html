@@ -7,7 +7,6 @@
     <link rel="icon" href="https://raw.githubusercontent.com/fabricioricard/BIGFOOT-Esports-Site/main/images/favicon.ico" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Montserrat:wght@800&display=swap" rel="stylesheet">
     
-    <!-- Arquivos CSS -->
     <style>
         :root {
             --primary-color: #0f2027;
@@ -18,9 +17,9 @@
             --success-color: #4CAF50;
             --error-color: #f44336;
             --warning-color: #ff9800;
-            --card-bg: rgba(255, 255, 255, 0.1);
-            --border-radius: 12px;
-            --box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --border-radius: 16px;
+            --box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
         }
 
         * {
@@ -38,22 +37,22 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 0 20px;
         }
 
         .header {
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 2rem 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+            padding: 2.5rem 0;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header h1 {
             font-family: 'Montserrat', sans-serif;
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             font-weight: 800;
             margin-bottom: 0.5rem;
             background: linear-gradient(45deg, #fff, #b0b0b0);
@@ -63,59 +62,67 @@
         }
 
         .header p {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: var(--text-secondary);
             margin-bottom: 1rem;
         }
 
         .header-date {
-            font-size: 0.9rem;
+            font-size: 1rem;
             color: var(--text-secondary);
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .header-stats {
             display: flex;
             justify-content: center;
-            gap: 2rem;
+            gap: 3rem;
             flex-wrap: wrap;
         }
 
         .header-stat {
             text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            min-width: 120px;
         }
 
         .header-stat-number {
             display: block;
-            font-size: 1.5rem;
+            font-size: 2rem;
             font-weight: 700;
             color: var(--success-color);
         }
 
         .header-stat-label {
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         main {
-            padding: 2rem 0;
+            padding: 2.5rem 0;
         }
 
         .controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
         .status {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
+            background: rgba(76, 175, 80, 0.1);
+            padding: 0.75rem 1.25rem;
+            border-radius: 25px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
         }
 
         .status-indicator {
@@ -127,135 +134,195 @@
         }
 
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% { opacity: 1; box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { opacity: 0.7; box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { opacity: 1; box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
         }
 
         .btn {
-            padding: 0.75rem 1.5rem;
+            padding: 0.875rem 1.75rem;
             border: none;
             border-radius: var(--border-radius);
             font-family: inherit;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
+            font-size: 0.95rem;
         }
 
         .btn-primary {
-            background: var(--success-color);
+            background: linear-gradient(135deg, var(--success-color), #45a049);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #45a049;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
 
         .btn-secondary {
-            background: var(--accent-color);
+            background: linear-gradient(135deg, var(--accent-color), #1e4a5a);
             color: white;
         }
 
         .btn-secondary:hover {
-            background: #1e4a5a;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(44, 83, 100, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #f57c00);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
         }
 
         .news-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
             margin-bottom: 2rem;
         }
 
         .news-card {
             background: var(--card-bg);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
             border-radius: var(--border-radius);
-            padding: 1.5rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
             cursor: pointer;
+            overflow: hidden;
+            position: relative;
         }
 
-.news-card-image {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 8px 8px 0 0;
-    margin-bottom: 10px;
-}
-        
         .news-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px);
             box-shadow: var(--box-shadow);
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .news-card-image-container {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+        }
+
+        .news-card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.4s ease;
+            opacity: 0;
+        }
+
+        .news-card-image.loaded {
+            opacity: 1;
+        }
+
+        .news-card:hover .news-card-image {
+            transform: scale(1.05);
+        }
+
+        .news-card-image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 100%);
+        }
+
+        .news-card-body {
+            padding: 1.75rem;
         }
 
         .news-card-header {
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
         }
 
         .news-card-source {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8rem;
+            gap: 0.75rem;
+            font-size: 0.85rem;
             color: var(--text-secondary);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
         }
 
         .translation-badge {
             background: var(--success-color);
             color: white;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
 
         .news-card-title {
-            font-size: 1.1rem;
+            font-size: 1.25rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
             line-height: 1.4;
+            color: var(--text-color);
         }
 
         .news-card-date {
-            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
             color: var(--text-secondary);
+        }
+
+        .date-icon {
+            font-size: 0.9rem;
         }
 
         .news-card-content-wrapper {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .news-card-content {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-secondary);
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .news-card-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1rem;
         }
 
         .news-card-source-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             color: var(--success-color);
             text-decoration: none;
+            transition: color 0.3s ease;
         }
 
         .news-card-source-link:hover {
+            color: #45a049;
             text-decoration: underline;
         }
 
         .news-card-read-more {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             color: var(--text-secondary);
+            font-weight: 500;
         }
 
         .modal {
@@ -265,88 +332,136 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
             padding: 2rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.modal-show {
+            opacity: 1;
         }
 
         .modal-content {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             border-radius: var(--border-radius);
-            padding: 2rem;
-            max-width: 800px;
-            max-height: 80vh;
+            padding: 2.5rem;
+            max-width: 900px;
+            max-height: 85vh;
             overflow-y: auto;
             position: relative;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.modal-show .modal-content {
+            transform: translateY(0);
         }
 
         .modal-close {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: none;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
             border: none;
             font-size: 1.5rem;
             color: var(--text-secondary);
             cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
         }
 
         .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
             color: var(--text-color);
         }
 
+        .modal-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
         .modal h2 {
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            line-height: 1.3;
+            color: var(--text-color);
         }
 
         .modal-source, .modal-date {
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
         }
 
         .modal-body {
-            margin: 1.5rem 0;
-            line-height: 1.7;
+            margin: 2rem 0;
+            line-height: 1.8;
         }
 
-        .modal-body p {
-            margin-bottom: 1rem;
+        .modal-body .content-paragraph {
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+            text-align: justify;
+        }
+
+        .modal-body .content-subtitle {
+            color: var(--success-color);
+            font-size: 1.3rem;
+            margin: 2rem 0 1rem 0;
+            font-weight: 600;
         }
 
         .modal-footer {
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 1rem;
+            padding-top: 1.5rem;
             text-align: center;
         }
 
         .modal-source-link {
-            color: var(--success-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--success-color);
+            color: white;
             text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
 
         .modal-source-link:hover {
-            text-decoration: underline;
+            background: #45a049;
+            transform: translateY(-2px);
         }
 
         .loading {
             text-align: center;
-            padding: 2rem;
+            padding: 3rem;
         }
 
         .spinner {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border: 4px solid rgba(255, 255, 255, 0.1);
             border-left: 4px solid var(--success-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            margin: 0 auto 1.5rem;
         }
 
         @keyframes spin {
@@ -354,59 +469,127 @@
             100% { transform: rotate(360deg); }
         }
 
+        .loading-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--success-color);
+            border-radius: 50%;
+            animation: bounce 1.4s ease-in-out infinite both;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            } 40% {
+                transform: scale(1);
+            }
+        }
+
         .error {
             background: rgba(244, 67, 54, 0.1);
             border: 1px solid var(--error-color);
             border-radius: var(--border-radius);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            text-align: center;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .error-icon {
+            font-size: 1.5rem;
+        }
+
+        .error-content {
+            flex: 1;
+        }
+
+        .error-content strong {
+            display: block;
+            margin-bottom: 0.5rem;
         }
 
         .retry-btn {
             background: var(--error-color);
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
             cursor: pointer;
-            margin-left: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
 
         .retry-btn:hover {
             background: #d32f2f;
+            transform: translateY(-2px);
         }
 
         .empty-state {
             text-align: center;
-            padding: 3rem;
+            padding: 4rem;
             color: var(--text-secondary);
         }
 
         .empty-state h3 {
             margin-bottom: 1rem;
+            font-size: 1.5rem;
         }
 
         .footer {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.3);
             text-align: center;
-            padding: 1.5rem 0;
+            padding: 2rem 0;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 2rem;
+            margin-top: 3rem;
         }
 
         .footer p {
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--success-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #45a049;
         }
 
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
 
             .header-stats {
-                gap: 1rem;
+                gap: 1.5rem;
+            }
+
+            .header-stat {
+                min-width: 100px;
+                padding: 0.75rem;
             }
 
             .controls {
@@ -422,10 +605,47 @@
 
             .news-grid {
                 grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .news-card-image-container {
+                height: 200px;
             }
 
             .modal-content {
                 margin: 1rem;
+                padding: 2rem;
+                max-height: 90vh;
+            }
+
+            .modal h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .header {
+                padding: 2rem 0;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .news-card-body {
+                padding: 1.25rem;
+            }
+
+            .modal-content {
                 padding: 1.5rem;
             }
         }
@@ -462,11 +682,11 @@
             <div class="controls">
                 <div class="status">
                     <div class="status-indicator"></div>
-                    <span>Sistema ativo - Atualizações automáticas a cada 3 minutos</span>
+                    <span>Sistema ativo - Atualizações automáticas a cada 2 minutos</span>
                 </div>
                 <div>
                     <button class="btn btn-primary" id="refreshBtn">🔄 Atualizar Agora</button>
-                    <button class="btn btn-secondary" id="autoRefreshBtn">⏰ Auto: ON</button>
+                    <button class="btn btn-secondary" id="autoRefreshBtn">⏰ Auto: <span style="color: #4CAF50;">ON</span></button>
                 </div>
             </div>
 
@@ -482,12 +702,15 @@
             <div id="newsModal" class="modal" style="display: none;">
                 <div class="modal-content">
                     <span id="closeModal" class="modal-close">&times;</span>
+                    <img id="modalImage" class="modal-image" style="display: none;" alt="Imagem da notícia">
                     <h2 id="modalTitle"></h2>
                     <p id="modalSource" class="modal-source"></p>
                     <p id="modalDate" class="modal-date"></p>
                     <div id="modalContent" class="modal-body"></div>
                     <div class="modal-footer">
-                        <a id="modalSourceLink" href="#" target="_blank" class="modal-source-link"></a>
+                        <a id="modalSourceLink" href="#" target="_blank" class="modal-source-link">
+                            🔗 Ler artigo original
+                        </a>
                     </div>
                 </div>
             </div>
@@ -500,7 +723,629 @@
         </div>
     </footer>
 
-    <!-- Arquivo JavaScript -->
-    <script src="js/news-system.js" defer></script>
+    <script>
+        // Sistema de Notícias integrado
+        class NewsSystem {
+            constructor() {
+                this.apiUrl = '/api/news';
+                this.autoRefresh = true;
+                this.refreshInterval = null;
+                this.refreshIntervalTime = 120000; // 2 minutos
+                this.lastNewsCount = 0;
+                this.lastNewsIds = new Set();
+                this.maxNews = 8;
+                this.init();
+            }
+
+            init() {
+                console.log('NewsSystem: Inicializando...');
+                this.updateCurrentDate();
+                this.bindEvents();
+                this.loadNews();
+                this.startAutoRefresh();
+            }
+
+            updateCurrentDate() {
+                const currentDateEl = document.getElementById('currentDate');
+                if (!currentDateEl) return;
+                const now = new Date();
+                const options = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                };
+                currentDateEl.textContent = now.toLocaleDateString('pt-BR', options);
+            }
+
+            bindEvents() {
+                const refreshBtn = document.getElementById('refreshBtn');
+                const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+                const closeModal = document.getElementById('closeModal');
+                const modal = document.getElementById('newsModal');
+
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => {
+                        this.loadNews(true);
+                    });
+                }
+
+                if (autoRefreshBtn) {
+                    autoRefreshBtn.addEventListener('click', () => {
+                        this.toggleAutoRefresh();
+                    });
+                }
+
+                if (closeModal) {
+                    closeModal.addEventListener('click', () => this.hideModal());
+                }
+
+                if (modal) {
+                    modal.addEventListener('click', (event) => {
+                        if (event.target === modal) {
+                            this.hideModal();
+                        }
+                    });
+                }
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        this.hideModal();
+                    }
+                });
+            }
+
+            generateNewsId(news) {
+                const combined = news.title + news.url;
+                return btoa(encodeURIComponent(combined)).substring(0, 16);
+            }
+
+            async loadNews(forceRefresh = false) {
+                console.log('NewsSystem: Carregando notícias...', forceRefresh ? '(forçado)' : '');
+                this.showLoading();
+                this.hideError();
+
+                try {
+                    const url = forceRefresh ? `${this.apiUrl}?t=${Date.now()}` : this.apiUrl;
+                    const response = await fetch(url);
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+                        throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success && data.news) {
+                        const processedNews = data.news.map(news => ({
+                            ...news,
+                            id: this.generateNewsId(news)
+                        }));
+                        
+                        const newNewsIds = new Set(processedNews.map(n => n.id));
+                        const hasNewNews = processedNews.some(news => !this.lastNewsIds.has(news.id));
+                        
+                        if (hasNewNews && this.lastNewsIds.size > 0) {
+                            const newCount = processedNews.filter(news => !this.lastNewsIds.has(news.id)).length;
+                            this.showNewNewsNotification(newCount);
+                        }
+                        
+                        this.lastNewsIds = newNewsIds;
+                        this.lastNewsCount = processedNews.length;
+                        
+                        const recentNews = this.sortAndLimitNews(processedNews);
+                        
+                        this.displayNews(recentNews);
+                        this.updateStats(recentNews.length, data.timestamp);
+                        
+                    } else {
+                        throw new Error('Resposta inválida do servidor');
+                    }
+                } catch (error) {
+                    console.error('Erro no fetch:', error);
+                    this.showError('Erro de conexão: ' + error.message);
+                    this.loadFallbackNews();
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            sortAndLimitNews(news) {
+                const sorted = news.sort((a, b) => new Date(b.date) - new Date(a.date));
+                return sorted.slice(0, this.maxNews);
+            }
+
+            showNewNewsNotification(count) {
+                const notification = document.createElement('div');
+                notification.className = 'new-news-notification';
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <span class="notification-icon">🔔</span>
+                        <span class="notification-text">${count} nova${count > 1 ? 's' : ''} notícia${count > 1 ? 's' : ''} disponível${count > 1 ? 'is' : ''}!</span>
+                        <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                    </div>
+                `;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #4CAF50, #45a049);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3);
+                    z-index: 1001;
+                    animation: slideInNotification 0.4s ease-out;
+                    font-family: 'Poppins', sans-serif;
+                    max-width: 300px;
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.style.animation = 'slideOutNotification 0.3s ease-in forwards';
+                        setTimeout(() => notification.remove(), 300);
+                    }
+                }, 6000);
+            }
+
+            loadFallbackNews() {
+                console.log('Carregando notícias fallback...');
+                const fallbackNews = [
+                    {
+                        title: "Sistema temporariamente indisponível",
+                        content: "O sistema de notícias está temporariamente indisponível. Tente novamente em alguns minutos.",
+                        url: "#",
+                        image: "https://www.invenglobal.com/img/ig-logo-light.png",
+                        source: "Sistema",
+                        date: new Date().toISOString(),
+                        translated: false
+                    }
+                ];
+                
+                const processedNews = fallbackNews.map(news => ({
+                    ...news,
+                    id: this.generateNewsId(news)
+                }));
+                
+                this.displayNews(processedNews);
+                this.updateStats(processedNews.length, new Date().toISOString());
+            }
+
+            displayNews(news) {
+                const container = document.getElementById('newsContainer');
+                const emptyState = document.getElementById('emptyState');
+
+                if (!container) return;
+
+                if (!news || news.length === 0) {
+                    container.innerHTML = '';
+                    if (emptyState) emptyState.style.display = 'block';
+                    return;
+                }
+
+                if (emptyState) emptyState.style.display = 'none';
+
+                const htmlContent = news.map((item, index) => this.createNewsCard(item, index)).join('');
+                container.innerHTML = htmlContent;
+
+                news.forEach((item, index) => {
+                    const card = document.getElementById(`news-card-${index}`);
+                    if (card) {
+                        card.addEventListener('click', (e) => {
+                            if (e.target.classList.contains('news-card-source-link') || 
+                                e.target.closest('.news-card-source-link')) {
+                                return;
+                            }
+                            this.showModal(item);
+                        });
+                    }
+                });
+
+                this.setupLazyLoading();
+            }
+
+            createNewsCard(news, index) {
+                const date = new Date(news.date).toLocaleString('pt-BR');
+                const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
+
+                let firstSentence = '';
+                if (news.content) {
+                    const content = this.sanitizeHtml(news.content);
+                    const sentenceMatch = content.match(/^[^.!?]*[.!?]/);
+                    if (sentenceMatch) {
+                        firstSentence = sentenceMatch[0].trim();
+                    } else {
+                        firstSentence = content.substring(0, 180) + (content.length > 180 ? '...' : '');
+                    }
+                }
+
+                const imageUrl = news.image || 'https://www.invenglobal.com/img/ig-logo-light.png';
+                
+                const preview = firstSentence ? 
+                    `<div class="news-card-content-wrapper">
+                        <p class="news-card-content">${firstSentence}</p>
+                    </div>` : '';
+
+                return `
+                    <div class="news-card" id="news-card-${index}" data-news-id="${news.id || index}">
+                        <div class="news-card-image-container">
+                            <img 
+                                class="news-card-image lazy-load" 
+                                data-src="${this.sanitizeHtml(imageUrl)}" 
+                                alt="${this.sanitizeHtml(news.title)}"
+                                loading="lazy"
+                            />
+                            <div class="news-card-image-overlay"></div>
+                        </div>
+                        <div class="news-card-body">
+                            <div class="news-card-header">
+                                <div class="news-card-source">
+                                    ${this.sanitizeHtml(news.source)}
+                                    ${translationBadge}
+                                </div>
+                                <h3 class="news-card-title">${this.sanitizeHtml(news.title)}</h3>
+                                <div class="news-card-date">
+                                    <span class="date-icon">📅</span>
+                                    ${date}
+                                </div>
+                            </div>
+                            ${preview}
+                            <div class="news-card-footer">
+                                <a href="${this.sanitizeHtml(news.url)}" target="_blank" class="news-card-source-link" onclick="event.stopPropagation();">
+                                    <span class="link-icon">🔗</span>
+                                    Fonte: ${this.sanitizeHtml(news.source)}
+                                </a>
+                                <div class="news-card-read-more">
+                                    <span class="read-icon">📖</span>
+                                    <span>Ler completa</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            setupLazyLoading() {
+                const images = document.querySelectorAll('.lazy-load');
+                
+                const imageObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            const src = img.getAttribute('data-src');
+                            
+                            if (src) {
+                                img.src = src;
+                                img.classList.remove('lazy-load');
+                                img.classList.add('loaded');
+                                
+                                img.onload = () => {
+                                    img.style.opacity = '1';
+                                };
+                                
+                                img.onerror = () => {
+                                    img.src = 'https://www.invenglobal.com/img/ig-logo-light.png';
+                                    img.style.opacity = '1';
+                                };
+                            }
+                            
+                            observer.unobserve(img);
+                        }
+                    });
+                });
+
+                images.forEach(img => imageObserver.observe(img));
+            }
+
+            showModal(news) {
+                const modal = document.getElementById('newsModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalSource = document.getElementById('modalSource');
+                const modalDate = document.getElementById('modalDate');
+                const modalContent = document.getElementById('modalContent');
+                const modalSourceLink = document.getElementById('modalSourceLink');
+                const modalImage = document.getElementById('modalImage');
+
+                if (!modal || !modalTitle || !modalSource || !modalDate || !modalContent || !modalSourceLink) {
+                    return;
+                }
+
+                modalTitle.textContent = news.title;
+                modalSource.textContent = news.source;
+                modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
+                modalContent.innerHTML = this.processFullContent(news.content);
+                modalSourceLink.href = news.url;
+                modalSourceLink.innerHTML = `🔗 Ler artigo original no ${news.source}`;
+                modalSourceLink.target = '_blank';
+
+                if (modalImage && news.image) {
+                    modalImage.src = news.image;
+                    modalImage.style.display = 'block';
+                    modalImage.alt = news.title;
+                } else if (modalImage) {
+                    modalImage.style.display = 'none';
+                }
+
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => modal.classList.add('modal-show'), 10);
+            }
+
+            processFullContent(content) {
+                if (!content) return '<p>Conteúdo não disponível.</p>';
+
+                let processedContent = this.sanitizeHtml(content);
+                
+                let paragraphs = processedContent
+                    .split(/\n\s*\n|\n/)
+                    .map(p => p.trim())
+                    .filter(p => p.length > 10);
+
+                if (paragraphs.length === 0) {
+                    paragraphs = processedContent
+                        .split(/\.\s+/)
+                        .map(p => p.trim())
+                        .filter(p => p.length > 20)
+                        .map(p => p.endsWith('.') ? p : p + '.');
+                }
+
+                const htmlParagraphs = paragraphs.map(paragraph => {
+                    const cleanParagraph = paragraph
+                        .replace(/<[^>]*>/g, '')
+                        .replace(/&nbsp;/g, ' ')
+                        .replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&quot;/g, '"')
+                        .trim();
+                    
+                    if (cleanParagraph.startsWith('## ')) {
+                        const titleText = cleanParagraph.substring(3);
+                        return `<h3 class="content-subtitle">${titleText}</h3>`;
+                    }
+                    
+                    return cleanParagraph ? `<p class="content-paragraph">${cleanParagraph}</p>` : '';
+                }).filter(p => p.length > 0);
+
+                return htmlParagraphs.length > 0 ? htmlParagraphs.join('') : '<p>Conteúdo não disponível.</p>';
+            }
+
+            hideModal() {
+                const modal = document.getElementById('newsModal');
+                if (modal) {
+                    modal.classList.remove('modal-show');
+                    document.body.style.overflow = '';
+                    setTimeout(() => modal.style.display = 'none', 300);
+                }
+            }
+
+            sanitizeHtml(text) {
+                if (!text) return '';
+                const temp = document.createElement('div');
+                temp.textContent = text;
+                return temp.innerHTML;
+            }
+
+            updateStats(count, timestamp) {
+                const newsCountEl = document.getElementById('newsCount');
+                const lastUpdateEl = document.getElementById('lastUpdate');
+
+                if (newsCountEl) {
+                    const currentCount = parseInt(newsCountEl.textContent) || 0;
+                    if (count !== currentCount) {
+                        this.animateCounter(newsCountEl, currentCount, count);
+                    }
+                }
+
+                if (timestamp && lastUpdateEl) {
+                    const date = new Date(timestamp);
+                    lastUpdateEl.textContent = date.toLocaleTimeString('pt-BR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                }
+            }
+
+            animateCounter(element, start, end) {
+                const duration = 1000;
+                const increment = (end - start) / (duration / 16);
+                let current = start;
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                        current = end;
+                        clearInterval(timer);
+                    }
+                    element.textContent = Math.round(current);
+                }, 16);
+            }
+
+            showLoading() {
+                const loadingContainer = document.getElementById('loadingContainer');
+                if (loadingContainer) {
+                    loadingContainer.innerHTML = `
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Buscando as últimas notícias do Inven Global...</p>
+                            <div class="loading-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            hideLoading() {
+                const loadingContainer = document.getElementById('loadingContainer');
+                if (loadingContainer) {
+                    loadingContainer.innerHTML = '';
+                }
+            }
+
+            showError(message) {
+                const errorContainer = document.getElementById('errorContainer');
+                if (errorContainer) {
+                    errorContainer.innerHTML = `
+                        <div class="error">
+                            <span class="error-icon">⚠️</span>
+                            <div class="error-content">
+                                <strong>Erro ao carregar notícias</strong>
+                                <p>${message}</p>
+                            </div>
+                            <button class="retry-btn">🔄 Tentar Novamente</button>
+                        </div>
+                    `;
+                    const retryBtn = errorContainer.querySelector('.retry-btn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', () => this.loadNews(true));
+                    }
+                }
+            }
+
+            hideError() {
+                const errorContainer = document.getElementById('errorContainer');
+                if (errorContainer) {
+                    errorContainer.innerHTML = '';
+                }
+            }
+
+            startAutoRefresh() {
+                if (this.autoRefresh) {
+                    this.refreshInterval = setInterval(() => {
+                        console.log('Auto-refresh executado');
+                        this.loadNews();
+                    }, this.refreshIntervalTime);
+                    console.log(`Auto-refresh iniciado (${this.refreshIntervalTime / 1000} segundos)`);
+                }
+            }
+
+            stopAutoRefresh() {
+                if (this.refreshInterval) {
+                    clearInterval(this.refreshInterval);
+                    this.refreshInterval = null;
+                    console.log('Auto-refresh parado');
+                }
+            }
+
+            toggleAutoRefresh() {
+                const btn = document.getElementById('autoRefreshBtn');
+                if (this.autoRefresh) {
+                    this.autoRefresh = false;
+                    this.stopAutoRefresh();
+                    if (btn) {
+                        btn.innerHTML = '⏰ Auto: <span style="color: #f44336;">OFF</span>';
+                        btn.classList.remove('btn-secondary');
+                        btn.classList.add('btn-warning');
+                    }
+                    console.log('Auto-refresh desativado');
+                } else {
+                    this.autoRefresh = true;
+                    this.startAutoRefresh();
+                    if (btn) {
+                        btn.innerHTML = '⏰ Auto: <span style="color: #4CAF50;">ON</span>';
+                        btn.classList.remove('btn-warning');
+                        btn.classList.add('btn-secondary');
+                    }
+                    console.log('Auto-refresh ativado');
+                }
+            }
+        }
+
+        // Adicionar estilos para animações de notificação
+        const notificationStyles = document.createElement('style');
+        notificationStyles.textContent = `
+            @keyframes slideInNotification {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOutNotification {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+            
+            .new-news-notification {
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .notification-icon {
+                font-size: 20px;
+                animation: bounce 2s infinite;
+            }
+            
+            @keyframes bounce {
+                0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                40% { transform: translateY(-8px); }
+                60% { transform: translateY(-4px); }
+            }
+            
+            .notification-text {
+                flex: 1;
+                font-weight: 500;
+                font-size: 14px;
+            }
+            
+            .notification-close {
+                background: rgba(255, 255, 255, 0.2);
+                border: none;
+                color: white;
+                font-size: 18px;
+                cursor: pointer;
+                padding: 4px 8px;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            }
+            
+            .notification-close:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+        `;
+        document.head.appendChild(notificationStyles);
+
+        // Inicializar sistema quando DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            window.newsSystem = new NewsSystem();
+        });
+
+        // Fallback para inicialização imediata se DOM já estiver carregado
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                if (!window.newsSystem) {
+                    window.newsSystem = new NewsSystem();
+                }
+            });
+        } else {
+            if (!window.newsSystem) {
+                window.newsSystem = new NewsSystem();
+            }
+        }
+    </script>
 </body>
 </html>
