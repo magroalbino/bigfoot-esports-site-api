@@ -12,17 +12,41 @@ class NewsSystem {
     init() {
         console.log('NewsSystem: Inicializando...');
         this.updateCurrentDate();
-        this.bindEvents();
+
+        if (typeof this.bindEvents === 'function') {
+            this.bindEvents();
+        } else {
+            console.warn('bindEvents() não está implementado.');
+        }
+
         this.loadNews();
-        this.startAutoRefresh();
+
+        if (typeof this.startAutoRefresh === 'function') {
+            this.startAutoRefresh();
+        } else {
+            console.warn('startAutoRefresh() não está implementado.');
+        }
     }
 
-    // ... (mantém métodos existentes como updateCurrentDate, bindEvents, etc.)
+    updateCurrentDate() {
+        const dateEl = document.getElementById('current-date');
+        if (dateEl) {
+            const now = new Date();
+            dateEl.textContent = now.toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } else {
+            console.warn('Elemento #current-date não encontrado no HTML.');
+        }
+    }
 
     async loadNews() {
         console.log('NewsSystem: Carregando notícias...');
-        this.showLoading();
-        this.hideError();
+        if (typeof this.showLoading === 'function') this.showLoading();
+        if (typeof this.hideError === 'function') this.hideError();
 
         try {
             const response = await fetch(this.apiUrl);
@@ -39,52 +63,59 @@ class NewsSystem {
 
             if (data.success && data.news) {
                 console.log(`Recebidas ${data.news.length} notícias`);
-                
-                // Atualizar notícias, substituindo a mais antiga se necessário
                 this.updateNewsList(data.news);
-                
-                this.displayNews(this.lastNews);
-                this.updateStats(this.lastNews.length, data.timestamp);
+                if (typeof this.displayNews === 'function') {
+                    this.displayNews(this.lastNews);
+                }
+                if (typeof this.updateStats === 'function') {
+                    this.updateStats(this.lastNews.length, data.timestamp);
+                }
             } else {
                 console.error('Resposta inválida:', data);
-                this.showError('Erro ao carregar notícias: ' + (data.error || 'Resposta inválida'));
-                this.loadFallbackNews();
+                if (typeof this.showError === 'function') {
+                    this.showError('Erro ao carregar notícias: ' + (data.error || 'Resposta inválida'));
+                }
+                if (typeof this.loadFallbackNews === 'function') {
+                    this.loadFallbackNews();
+                }
             }
         } catch (error) {
             console.error('Erro no fetch:', error);
-            this.showError('Erro de conexão: ' + error.message);
-            this.loadFallbackNews();
+            if (typeof this.showError === 'function') {
+                this.showError('Erro de conexão: ' + error.message);
+            }
+            if (typeof this.loadFallbackNews === 'function') {
+                this.loadFallbackNews();
+            }
         } finally {
-            this.hideLoading();
+            if (typeof this.hideLoading === 'function') this.hideLoading();
         }
     }
 
     updateNewsList(newNews) {
-        // Se não há notícias anteriores, inicializar com as novas
         if (this.lastNews.length === 0) {
-            this.lastNews = newNews.slice(0, 5); // Limitar a 5 notícias
+            this.lastNews = newNews.slice(0, 5);
             return;
         }
 
-        // Identificar notícias novas (baseado em URL ou data mais recente)
         const newItems = newNews.filter(newItem => 
             !this.lastNews.some(oldItem => oldItem.url === newItem.url)
         );
 
         if (newItems.length > 0) {
             console.log(`Encontradas ${newItems.length} notícias novas`);
-            // Adicionar novas notícias e remover as mais antigas
             this.lastNews = [...this.lastNews, ...newItems]
-                .sort((a, b) => new Date(b.date) - new Date(a.date)) // Ordenar por data decrescente
-                .slice(0, 5); // Manter apenas as 5 mais recentes
-            
-            this.showNewNewsNotification(newItems.length);
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 5);
+            if (typeof this.showNewNewsNotification === 'function') {
+                this.showNewNewsNotification(newItems.length);
+            }
         }
     }
 
     createNewsCard(news, index) {
         const date = new Date(news.date).toLocaleString('pt-BR');
-        const translationBadge = news.translated ? '<span class="ійtranslation-badge">🌐 Traduzido</span>' : '';
+        const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
         const image = news.image ? `<img src="${this.sanitizeHtml(news.image)}" alt="${this.sanitizeHtml(news.title)}" class="news-card-image">` : '';
 
         let firstSentence = '';
@@ -120,9 +151,6 @@ class NewsSystem {
         `;
     }
 
-    // ... (mantém outros métodos como showModal, processFullContent, etc.)
-
-    // Adicionar estilos para imagens
     addStyles() {
         const styleElement = document.createElement('style');
         styleElement.textContent = `
@@ -133,7 +161,7 @@ class NewsSystem {
                 border-radius: 8px 8px 0 0;
                 margin-bottom: 10px;
             }
-            ${notificationStyles}
+            ${typeof notificationStyles !== 'undefined' ? notificationStyles : ''}
         `;
         document.head.appendChild(styleElement);
     }
@@ -142,4 +170,4 @@ class NewsSystem {
 // Tornar disponível globalmente
 window.NewsSystem = NewsSystem;
 window.newsSystem = new NewsSystem();
-window.newsSystem.addStyles(); // Aplicar estilos
+window.newsSystem.addStyles();
