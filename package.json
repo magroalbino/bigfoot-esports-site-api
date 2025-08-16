@@ -2,7 +2,7 @@
   "name": "sistema-noticias-lol",
   "version": "1.0.0",
   "description": "Sistema automático de notícias sobre League of Legends",
-  "main": "index.html",
+  "main": "news-system.js",
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel --prod",
