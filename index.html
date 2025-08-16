@@ -1,28 +1,4 @@
-}
-
-        // Inicializar sistema quando DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM carregado - inicializando NewsSystem');
-            window.newsSystem = new NewsSystem();
-        });
-
-        // Fallback para inicialização imediata se DOM já estiver carregado
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                if (!window.newsSystem) {
-                    console.log('Inicializando NewsSystem via DOMContentLoaded');
-                    window.newsSystem = new NewsSystem();
-                }
-            });
-        } else {
-            if (!window.newsSystem) {
-                console.log('Inicializando NewsSystem imediatamente');
-                window.newsSystem = new NewsSystem();
-            }
-        }
-    </script>
-</body>
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -941,3 +917,42 @@
                     }
                 });
             }
+
+            // Métodos não implementados (placeholders)
+            loadNews(force = false) {
+                console.log('Método loadNews não implementado');
+                // Implementar lógica para carregar notícias da API
+            }
+
+            startAutoRefresh() {
+                console.log('Método startAutoRefresh não implementado');
+                // Implementar lógica para iniciar atualização automática
+            }
+
+            toggleAutoRefresh() {
+                console.log('Método toggleAutoRefresh não implementado');
+                // Implementar lógica para ligar/desligar atualização automática
+            }
+
+            hideModal() {
+                console.log('Método hideModal não implementado');
+                // Implementar lógica para fechar o modal
+            }
+        }
+
+        // Inicializar sistema quando DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM carregado - inicializando NewsSystem');
+            window.newsSystem = new NewsSystem();
+        });
+
+        // Fallback para inicialização imediata se DOM já estiver carregado
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if (!window.newsSystem) {
+                console.log('Inicializando NewsSystem imediatamente');
+                window.newsSystem = new NewsSystem();
+            }
+        }
+    </script>
+</body>
+</html>
