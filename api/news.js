@@ -61,17 +61,6 @@ function basicTranslation(text) {
         'LEC': 'LEC',
         'MSI': 'MSI',
         'Riot Games': 'Riot Games',
-        'T1': 'T1',
-        'Gen.G': 'Gen.G',
-        'DRX': 'DRX',
-        'KT Rolster': 'KT Rolster',
-        'Hanwha Life Esports': 'Hanwha Life Esports',
-        'FPX': 'FPX',
-        'Keria': 'Keria',
-        'Faker': 'Faker',
-        'Viper': 'Viper',
-        'Milkyway': 'Milkyway',
-        'LazyFeel': 'LazyFeel',
         'Suspends': 'suspende',
         'Indefinitely': 'indefinidamente',
         'Over': 'por',
@@ -163,18 +152,20 @@ async function translateText(text) {
     }
 }
 
-// Função para extrair a imagem principal do artigo
+// Função melhorada para extrair a imagem principal do artigo
 function extractArticleImage($, url) {
-    // Tentar diferentes seletores para imagens
     const imageSelectors = [
         'meta[property="og:image"]',
         'meta[name="twitter:image"]',
         '.article-image img',
         '.featured-image img',
+        '.hero-image img',
         '.post-thumbnail img',
         'article img:first-of-type',
         '.content img:first-of-type',
-        '.article-content img:first-of-type'
+        '.article-content img:first-of-type',
+        '.entry-content img:first-of-type',
+        'img[src*="invenglobal"]'
     ];
 
     for (const selector of imageSelectors) {
@@ -184,7 +175,7 @@ function extractArticleImage($, url) {
             if (selector.includes('meta')) {
                 imageSrc = element.attr('content');
             } else {
-                imageSrc = element.attr('src') || element.attr('data-src');
+                imageSrc = element.attr('src') || element.attr('data-src') || element.attr('data-lazy-src');
             }
             
             if (imageSrc) {
@@ -198,7 +189,11 @@ function extractArticleImage($, url) {
                     const baseUrl = new URL(url);
                     imageSrc = baseUrl.origin + '/' + imageSrc;
                 }
-                return imageSrc;
+                
+                // Verificar se é uma imagem válida
+                if (imageSrc.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i)) {
+                    return imageSrc;
+                }
             }
         }
     }
@@ -207,7 +202,59 @@ function extractArticleImage($, url) {
     return 'https://www.invenglobal.com/img/ig-logo-light.png';
 }
 
-// Função para fazer scraping do conteúdo completo de uma notícia
+// Função melhorada para extrair a data do artigo
+function extractArticleDate($, url) {
+    const dateSelectors = [
+        'meta[property="article:published_time"]',
+        'meta[property="article:published"]',
+        'meta[name="DC.date.issued"]',
+        'meta[name="publish_date"]',
+        'time[datetime]',
+        '.article-date',
+        '.publish-date',
+        '.post-date',
+        '.date',
+        '.published',
+        '[class*="date"]'
+    ];
+    
+    for (const selector of dateSelectors) {
+        const element = $(selector);
+        if (element.length > 0) {
+            let dateValue = '';
+            if (selector.includes('meta')) {
+                dateValue = element.attr('content');
+            } else if (selector === 'time[datetime]') {
+                dateValue = element.attr('datetime');
+            } else {
+                dateValue = element.text().trim();
+            }
+            
+            if (dateValue) {
+                // Tentar parsear diferentes formatos de data
+                const parsedDate = new Date(dateValue);
+                if (!isNaN(parsedDate.getTime())) {
+                    return parsedDate.toISOString();
+                }
+                
+                // Tentar parsear formato manual
+                const dateMatch = dateValue.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (dateMatch) {
+                    const [, month, day, year] = dateMatch;
+                    const date = new Date(year, month - 1, day);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString();
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback para data atual
+    return new Date().toISOString();
+}
+
+// Função melhorada para fazer scraping do conteúdo completo de uma notícia
 async function scrapeNewsContent(url) {
     try {
         console.log(`Scraping conteúdo de: ${url}`);
@@ -215,7 +262,7 @@ async function scrapeNewsContent(url) {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             },
-            timeout: 15000
+            timeout: 20000
         });
         
         if (!response.ok) throw new Error(`Falha ao acessar ${url}: ${response.status}`);
@@ -227,63 +274,45 @@ async function scrapeNewsContent(url) {
         const imageUrl = extractArticleImage($, url);
         
         // Extrair data do artigo
-        let articleDate = new Date().toISOString();
-        const dateSelectors = [
-            'meta[property="article:published_time"]',
-            'meta[name="DC.date.issued"]',
-            'time[datetime]',
-            '.article-date',
-            '.publish-date',
-            '.post-date'
-        ];
+        const articleDate = extractArticleDate($, url);
         
-        for (const selector of dateSelectors) {
-            const element = $(selector);
-            if (element.length > 0) {
-                let dateValue = '';
-                if (selector.includes('meta')) {
-                    dateValue = element.attr('content');
-                } else if (selector === 'time[datetime]') {
-                    dateValue = element.attr('datetime');
-                } else {
-                    dateValue = element.text().trim();
-                }
-                
-                if (dateValue) {
-                    const parsedDate = new Date(dateValue);
-                    if (!isNaN(parsedDate.getTime())) {
-                        articleDate = parsedDate.toISOString();
-                        break;
-                    }
-                }
-            }
-        }
-        
-        // Seletores específicos para o Inven Global - melhorados
+        // Seletores específicos para o Inven Global e sites similares
         let content = '';
         const contentSelectors = [
             '.article-content',
+            '.article-body',
             '.post-content',
             '.entry-content',
-            '.article-body',
             '.content-body',
+            '.article-text',
             'article .content',
-            '[class*="article"] [class*="content"]'
+            '[class*="article"] [class*="content"]',
+            '.post-body',
+            'main article',
+            '.single-content'
         ];
         
         for (const selector of contentSelectors) {
             const container = $(selector);
             if (container.length > 0) {
                 // Remover elementos indesejados
-                container.find('script, style, .advertisement, .social-share, .related-articles, .comments').remove();
+                container.find('script, style, .advertisement, .ads, .social-share, .related-articles, .comments, .sidebar, .navigation, .footer, .header').remove();
                 
-                // Extrair parágrafos e preservar estrutura
-                const paragraphs = container.find('p, h1, h2, h3, h4, h5, h6').map((i, el) => {
+                // Extrair todo o texto preservando parágrafos
+                const textElements = container.find('p, h1, h2, h3, h4, h5, h6, div').map((i, el) => {
                     const $el = $(el);
                     const text = $el.text().trim();
                     
-                    // Pular parágrafos muito curtos ou vazios
-                    if (text.length < 20) return null;
+                    // Pular elementos muito curtos, vazios ou que são claramente não-conteúdo
+                    if (text.length < 15 || 
+                        text.includes('Advertisement') ||
+                        text.includes('Subscribe') ||
+                        text.includes('Follow us') ||
+                        text.includes('Share') ||
+                        text.includes('Read more') ||
+                        text.match(/^(Tags?|Category|Categories):/i)) {
+                        return null;
+                    }
                     
                     // Adicionar marcação para títulos
                     if ($el.is('h1, h2, h3, h4, h5, h6')) {
@@ -293,42 +322,47 @@ async function scrapeNewsContent(url) {
                     return text;
                 }).get().filter(text => text && text.trim());
                 
-                if (paragraphs.length > 0) {
-                    content = paragraphs.join('\n\n');
+                if (textElements.length > 2) {
+                    content = textElements.join('\n\n');
                     break;
                 }
             }
         }
         
-        // Fallback: tentar extrair todo o texto do corpo principal
-        if (!content) {
+        // Fallback mais agressivo: extrair do body principal
+        if (!content || content.length < 200) {
+            console.log('Tentando fallback para extração de conteúdo...');
             const bodyText = $('body').text();
-            const sentences = bodyText.split(/[.!?]+/).filter(sentence => 
-                sentence.trim().length > 50 && 
-                !sentence.includes('cookie') && 
-                !sentence.includes('subscribe') &&
-                !sentence.includes('advertisement')
-            );
+            const sentences = bodyText.split(/[.!?]+/).filter(sentence => {
+                const trimmed = sentence.trim();
+                return trimmed.length > 30 && 
+                       !trimmed.includes('cookie') && 
+                       !trimmed.includes('subscribe') &&
+                       !trimmed.includes('advertisement') &&
+                       !trimmed.includes('Follow') &&
+                       !trimmed.includes('Share') &&
+                       !trimmed.match(/^(Home|News|Sports|About|Contact)/i);
+            });
             
-            if (sentences.length > 3) {
-                content = sentences.slice(0, 10).join('. ') + '.';
+            if (sentences.length > 5) {
+                content = sentences.slice(0, 15).join('. ') + '.';
             }
         }
         
-        if (!content) {
-            console.warn(`Nenhum conteúdo encontrado em: ${url}`);
-            content = 'Conteúdo não disponível. Acesse o link da notícia para ler a íntegra.';
+        if (!content || content.length < 100) {
+            console.warn(`Conteúdo insuficiente encontrado em: ${url}`);
+            content = 'Conteúdo não disponível para extração automática. Acesse o link da notícia para ler a íntegra.';
         }
 
         // Limpar e formatar conteúdo
         content = content
-            .replace(/[\n\s]+/g, ' ')
+            .replace(/[\r\n\t]+/g, ' ')
+            .replace(/\s+/g, ' ')
             .replace(/&nbsp;/g, ' ')
             .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
             .replace(/&quot;/g, '"')
-            .replace(/\s+/g, ' ')
             .trim();
 
         // Traduzir conteúdo
@@ -350,15 +384,15 @@ async function scrapeNewsContent(url) {
     }
 }
 
-// Função para extrair notícias diretamente da página do Inven Global LoL
+// Função melhorada para extrair notícias do Inven Global
 async function scrapeInvenGlobalNews() {
     try {
         console.log('Fazendo scraping da página do Inven Global LoL...');
         const response = await fetch('https://www.invenglobal.com/lol', {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
-            timeout: 15000
+            timeout: 20000
         });
         
         if (!response.ok) throw new Error(`Falha ao acessar Inven Global: ${response.status}`);
@@ -367,46 +401,115 @@ async function scrapeInvenGlobalNews() {
         const $ = cheerio.load(html);
         
         const news = [];
-        
-        // Procurar por links de artigos mais especificamente
         const articleLinks = new Set();
         
-        // Tentar diferentes seletores para encontrar links de artigos
-        $('a[href*="/articles/"]').each((i, el) => {
-            const href = $(el).attr('href');
-            const text = $(el).text().trim();
+        // Múltiplos seletores para capturar diferentes tipos de links de artigos
+        const selectors = [
+            'a[href*="/articles/"]',
+            'a[href*="/lol/article/"]',
+            '.article-link',
+            '.news-link',
+            '.post-link'
+        ];
+        
+        selectors.forEach(selector => {
+            $(selector).each((i, el) => {
+                const $el = $(el);
+                let href = $el.attr('href');
+                
+                if (!href) return;
+                
+                // Construir URL absoluta
+                if (href.startsWith('/')) {
+                    href = 'https://www.invenglobal.com' + href;
+                } else if (!href.startsWith('http')) {
+                    href = 'https://www.invenglobal.com/' + href;
+                }
+                
+                // Extrair título do artigo
+                let title = $el.text().trim();
+                
+                // Se não encontrou título no link, tentar elementos próximos
+                if (!title || title.length < 10) {
+                    title = $el.find('h1, h2, h3, h4, h5, h6').text().trim() ||
+                           $el.siblings('h1, h2, h3, h4, h5, h6').text().trim() ||
+                           $el.parent().find('h1, h2, h3, h4, h5, h6').text().trim() ||
+                           $el.attr('title') ||
+                           $el.attr('alt');
+                }
+                
+                // Verificar se é um artigo válido
+                if (href.includes('/articles/') && 
+                    title && 
+                    title.length > 20 && 
+                    !title.toLowerCase().includes('read more') &&
+                    !title.toLowerCase().includes('continue reading') &&
+                    !title.toLowerCase().includes('click here')) {
+                    
+                    articleLinks.add({
+                        url: href,
+                        title: title.substring(0, 200) // Limitar tamanho do título
+                    });
+                }
+            });
+        });
+        
+        // Também tentar capturar da seção de notícias principais
+        $('.news-item, .article-item, .post-item, .content-item').each((i, el) => {
+            const $el = $(el);
+            const link = $el.find('a').first();
+            const titleEl = $el.find('h1, h2, h3, h4, h5, h6').first();
             
-            if (href && text && text.length > 20 && !text.includes('READ MORE')) {
-                articleLinks.add({
-                    url: href.startsWith('http') ? href : `https://www.invenglobal.com${href}`,
-                    title: text
-                });
+            if (link.length && titleEl.length) {
+                let href = link.attr('href');
+                const title = titleEl.text().trim();
+                
+                if (href && title && title.length > 20) {
+                    if (href.startsWith('/')) {
+                        href = 'https://www.invenglobal.com' + href;
+                    }
+                    
+                    if (href.includes('/articles/')) {
+                        articleLinks.add({
+                            url: href,
+                            title: title.substring(0, 200)
+                        });
+                    }
+                }
             }
         });
         
-        // Converter Set para Array e pegar os primeiros 6 artigos
-        const articles = Array.from(articleLinks).slice(0, 6);
+        // Converter Set para Array e pegar os artigos mais recentes
+        const articles = Array.from(articleLinks).slice(0, 8);
         
         console.log(`Encontrados ${articles.length} artigos para processar`);
         
+        if (articles.length === 0) {
+            console.warn('Nenhum artigo encontrado na página principal');
+            return [];
+        }
+        
         for (const article of articles) {
             try {
-                console.log(`Processando: ${article.title}`);
+                console.log(`Processando: ${article.title.substring(0, 50)}...`);
                 
                 const articleData = await scrapeNewsContent(article.url);
                 
-                news.push({
-                    title: await translateText(article.title),
-                    url: article.url,
-                    content: articleData.content,
-                    image: articleData.image,
-                    source: 'Inven Global',
-                    date: articleData.date,
-                    translated: true
-                });
+                // Só adicionar se conseguiu extrair conteúdo útil
+                if (articleData.content.length > 100) {
+                    news.push({
+                        title: await translateText(article.title),
+                        url: article.url,
+                        content: articleData.content,
+                        image: articleData.image,
+                        source: 'Inven Global',
+                        date: articleData.date,
+                        translated: true
+                    });
+                }
                 
-                // Delay entre requisições
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Delay entre requisições para evitar sobrecarga
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 
             } catch (error) {
                 console.error(`Erro ao processar artigo ${article.url}:`, error);
@@ -416,54 +519,38 @@ async function scrapeInvenGlobalNews() {
         // Ordenar por data (mais recentes primeiro)
         news.sort((a, b) => new Date(b.date) - new Date(a.date));
         
+        console.log(`Processamento concluído: ${news.length} notícias extraídas`);
         return news;
+        
     } catch (error) {
         console.error('Erro ao fazer scraping do Inven Global:', error);
         return [];
     }
 }
 
-// Cache simples em memória para armazenar notícias
+// Cache aprimorado
 let newsCache = {
     data: null,
     timestamp: null,
-    ttl: 180000 // 3 minutos
+    ttl: 120000 // 2 minutos
 };
 
-// Notícias estáticas como fallback
+// Notícias estáticas como fallback melhoradas
 export function getStaticNews() {
     console.log('getStaticNews: Gerando notícias estáticas...');
     const today = new Date();
     const news = [
         {
-            title: "Equipe LPL FPX Suspende Milkyway Indefinidamente por Alegações de Vazamento de Pick-Ban",
-            url: "https://www.invenglobal.com/articles/19568/lpl-team-fpx-suspends-milkyway-indefinitely-over-pick-ban-leak-allegations",
-            content: "A equipe profissional de jogos da LPL da China, FPX Esports Club, suspendeu indefinidamente seu jogador Cai 'milkyway' Zi-Jun. A suspensão veio após alegações de que ele estava envolvido em manipulação de partidas e vazamento de informações estratégicas durante o processo de pick-ban. O clube anunciou que está conduzindo uma investigação completa sobre as alegações e que tomará as medidas apropriadas com base nos resultados. Esta é uma situação séria que pode ter implicações significativas para a carreira do jogador e para a integridade competitiva da liga. A FPX declarou em comunicado oficial que leva muito a sério qualquer questão relacionada à integridade competitiva e que cooperará totalmente com as autoridades da liga para resolver esta situação. O jogador permanecerá suspenso até que a investigação seja concluída.",
-            image: "https://www.invenglobal.com/img/article/19568.jpg",
-            source: "Inven Global",
-            date: new Date('2025-08-14T12:00:00Z').toISOString(),
-            translated: true
-        },
-        {
-            title: "T1 Keria sobre Domínio na Bot Lane e 700ª Vitória LCK do Faker Após Varrer KT Rolster",
-            url: "https://www.invenglobal.com/articles/19570/t1-keria-on-bot-lane-dominance-and-fakers-700th-lck-victory-after-sweep-of-kt-rolster",
-            content: "O suporte da T1, Ryu 'Keria' Min-seok, participou da entrevista pós-partida após a equipe varrer o KT Rolster por 2-0 na Rodada 4 da temporada regular da LCK 2025, conquistando sua 17ª vitória. Ele refletiu sobre o domínio da dupla bot lane e o marco histórico de Faker alcançar 700 vitórias na LCK. Keria destacou a importância da comunicação e sinergia com seu ADC, bem como o papel fundamental que Faker continua desempenhando na equipe mesmo após tantos anos de carreira. A vitória consolida a posição da T1 como uma das principais candidatas aos playoffs. Durante a entrevista, Keria mencionou que a equipe está focada em manter a consistência e que cada vitória os aproxima mais de seus objetivos para a temporada. Ele também elogiou o desempenho de Faker, dizendo que é uma honra jogar ao lado de uma lenda viva dos esports.",
-            image: "https://www.invenglobal.com/img/article/19570.jpg",
-            source: "Inven Global",
-            date: new Date('2025-08-14T10:30:00Z').toISOString(),
-            translated: true
-        },
-        {
-            title: "Finais da LCK 2025 Serão Transmitidas ao Vivo na MBC em Primeira Histórica para Esports Coreanos",
-            url: "https://www.invenglobal.com/articles/19569/2025-lck-finals-to-air-live-on-mbc-in-historic-first-for-korean-esports",
-            content: "A Liga dos Campeões da Coreia fará sua estreia na TV terrestre no próximo mês, com as Finais da LCK 2025 programadas para serem transmitidas ao vivo na emissora sul-coreana MBC. A melhor de cinco séries começa às 14h KST no domingo. Este é um marco histórico para os esports coreanos, representando o reconhecimento mainstream do League of Legends como um esporte legítimo. A transmissão na TV aberta deve aumentar significativamente a audiência e a exposição dos esports para o público geral coreano. A decisão da MBC de transmitir as finais reflete o crescimento contínuo dos esports na Coreia do Sul e marca um momento decisivo para a legitimação dos jogos eletrônicos como entretenimento mainstream. Espera-se que milhões de telespectadores assistam à transmissão, estabelecendo um novo recorde de audiência para eventos de esports no país.",
-            image: "https://www.invenglobal.com/img/article/19569.jpg",
-            source: "Inven Global",
-            date: new Date('2025-08-14T09:15:00Z').toISOString(),
-            translated: true
+            title: "Sistema de Notícias em Manutenção",
+            url: "https://www.invenglobal.com/lol",
+            content: "O sistema de extração de notícias está temporariamente indisponível para manutenção. Durante este período, as notícias mais recentes podem não estar sendo exibidas. Recomendamos verificar diretamente o site do Inven Global para as últimas atualizações sobre League of Legends. O sistema será restaurado em breve com melhorias na detecção automática de novas matérias e na qualidade da tradução. Agradecemos pela compreensão.",
+            image: "https://www.invenglobal.com/img/ig-logo-light.png",
+            source: "Sistema",
+            date: today.toISOString(),
+            translated: false
         }
     ];
-    console.log(`getStaticNews: Retornando ${news.length} notícias`);
+    console.log(`getStaticNews: Retornando ${news.length} notícias de fallback`);
     return news;
 }
 
@@ -493,7 +580,9 @@ export default async function handler(req, res) {
         
         // Verificar se existe cache válido
         const now = Date.now();
-        if (newsCache.data && newsCache.timestamp && (now - newsCache.timestamp) < newsCache.ttl) {
+        const forceRefresh = req.query.t; // Parâmetro para forçar atualização
+        
+        if (!forceRefresh && newsCache.data && newsCache.timestamp && (now - newsCache.timestamp) < newsCache.ttl) {
             console.log('API /api/news: Retornando dados do cache');
             return res.status(200).json({
                 success: true,
@@ -503,7 +592,7 @@ export default async function handler(req, res) {
             });
         }
         
-        console.log('API /api/news: Buscando notícias do Inven Global...');
+        console.log('API /api/news: Buscando notícias atualizadas do Inven Global...');
         
         // Tentar fazer scraping direto da página
         let news = await scrapeInvenGlobalNews();
@@ -517,12 +606,15 @@ export default async function handler(req, res) {
         newsCache.data = news;
         newsCache.timestamp = now;
 
+        console.log(`API /api/news: Retornando ${news.length} notícias`);
+
         // Retornar resposta de sucesso
         return res.status(200).json({
             success: true,
             news,
             timestamp: new Date().toISOString(),
-            cached: false
+            cached: false,
+            totalFound: news.length
         });
         
     } catch (error) {
@@ -539,9 +631,13 @@ export default async function handler(req, res) {
             });
         }
         
-        return res.status(500).json({
-            success: false,
-            error: `Erro interno do servidor: ${error.message}`
+        // Se não há cache, retornar notícias estáticas
+        return res.status(200).json({
+            success: true,
+            news: getStaticNews(),
+            timestamp: new Date().toISOString(),
+            cached: false,
+            warning: 'Dados estáticos devido a erro no sistema'
         });
     }
 }
