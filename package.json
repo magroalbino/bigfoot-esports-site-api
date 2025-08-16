@@ -1,27 +1,24 @@
 {
-  "name": "sistema-noticias-lol",
+  "name": "lol-news-system",
   "version": "1.0.0",
-  "description": "Sistema automático de notícias sobre League of Legends",
-  "main": "news-system.js",
+  "description": "Sistema de notícias sobre League of Legends com dados do Inven Global",
+  "main": "index.js",
   "scripts": {
-    "dev": "vercel dev",
-    "deploy": "vercel --prod",
-    "schedule": "node scheduler.js"
+    "start": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
   },
-  "keywords": [
-    "league-of-legends",
-    "lol",
-    "noticias",
-    "esports"
-  ],
-  "author": "Fabricio Ricard",
-  "license": "MIT",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12",
-    "node-cron": "^3.0.2",
-    "node-fetch": "^2.6.7"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
-  "engines": {
-    "node": ">=14.0.0"
-  }
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2",
+    "vite": "^4.3.9"
+  },
+  "author": "",
+  "license": "ISC"
 }
