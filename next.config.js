@@ -3,12 +3,19 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: [
-      'static.invenglobal.com',
-      'www.invenglobal.com',
-      'invenglobal.com'
-    ],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'static.invenglobal.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.invenglobal.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'invenglobal.com',
+      },
       {
         protocol: 'https',
         hostname: '**',
