@@ -3,15 +3,16 @@ class NewsSystem {
         this.apiUrl = '/api/news';
         this.autoRefresh = true;
         this.refreshInterval = null;
-        this.refreshIntervalTime = 120000; // 2 minutos para detectar novas notícias mais rapidamente
+        this.refreshIntervalTime = 90000; // 1.5 minutos para detectar novas notícias mais rapidamente
         this.lastNewsCount = 0;
         this.lastNewsIds = new Set(); // Para rastrear notícias únicas
-        this.maxNews = 8; // Máximo de notícias a exibir
+        this.lastNewsTitles = new Set(); // Para rastrear títulos únicos
+        this.maxNews = 10; // Máximo de notícias a exibir
         this.init();
     }
 
     init() {
-        console.log('NewsSystem: Inicializando...');
+        console.log('NewsSystem: Inicializando sistema aprimorado...');
         this.updateCurrentDate();
         this.bindEvents();
         this.loadNews();
@@ -42,7 +43,7 @@ class NewsSystem {
 
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
-                console.log('Botão refresh clicado');
+                console.log('Botão refresh clicado - forçando atualização');
                 this.loadNews(true); // Forçar atualização
             });
         }
@@ -73,10 +74,15 @@ class NewsSystem {
         });
     }
 
-    // Gerar ID único para cada notícia baseado no título e URL
+    // Gerar ID único mais robusto para cada notícia
     generateNewsId(news) {
-        const combined = news.title + news.url;
-        return btoa(combined).substring(0, 16);
+        const combined = (news.title + news.url + news.date).replace(/[^\w]/g, '');
+        return btoa(encodeURIComponent(combined)).substring(0, 20);
+    }
+
+    // Gerar hash do título para comparação
+    generateTitleHash(title) {
+        return title.toLowerCase().replace(/[^\w\s]/g, '').trim();
     }
 
     async loadNews(forceRefresh = false) {
@@ -87,7 +93,13 @@ class NewsSystem {
         try {
             const url = forceRefresh ? `${this.apiUrl}?t=${Date.now()}` : this.apiUrl;
             console.log(`Fazendo fetch para: ${url}`);
-            const response = await fetch(url);
+            
+            const response = await fetch(url, {
+                cache: forceRefresh ? 'no-cache' : 'default',
+                headers: {
+                    'Cache-Control': forceRefresh ? 'no-cache' : 'max-age=60'
+                }
+            });
             console.log('Response status:', response.status);
 
             if (!response.ok) {
@@ -105,20 +117,30 @@ class NewsSystem {
                 // Processar notícias e adicionar IDs únicos
                 const processedNews = data.news.map(news => ({
                     ...news,
-                    id: this.generateNewsId(news)
+                    id: this.generateNewsId(news),
+                    titleHash: this.generateTitleHash(news.title)
                 }));
                 
-                // Verificar se há novas notícias
+                // Verificar se há novas notícias comparando por título e ID
                 const newNewsIds = new Set(processedNews.map(n => n.id));
-                const hasNewNews = processedNews.some(news => !this.lastNewsIds.has(news.id));
+                const newNewsTitles = new Set(processedNews.map(n => n.titleHash));
+                
+                const hasNewNews = processedNews.some(news => 
+                    !this.lastNewsIds.has(news.id) && 
+                    !this.lastNewsTitles.has(news.titleHash)
+                );
                 
                 if (hasNewNews && this.lastNewsIds.size > 0) {
-                    const newCount = processedNews.filter(news => !this.lastNewsIds.has(news.id)).length;
+                    const newCount = processedNews.filter(news => 
+                        !this.lastNewsIds.has(news.id) && 
+                        !this.lastNewsTitles.has(news.titleHash)
+                    ).length;
                     this.showNewNewsNotification(newCount);
                 }
                 
-                // Atualizar IDs conhecidos
+                // Atualizar IDs e títulos conhecidos
                 this.lastNewsIds = newNewsIds;
+                this.lastNewsTitles = newNewsTitles;
                 this.lastNewsCount = processedNews.length;
                 
                 // Manter apenas as notícias mais recentes
@@ -142,21 +164,38 @@ class NewsSystem {
     }
 
     sortAndLimitNews(news) {
-        // Ordenar por data (mais recentes primeiro)
-        const sorted = news.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Ordenar por data (mais recentes primeiro) e depois por título
+        const sorted = news.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            
+            // Primeiro ordenar por data
+            if (dateB.getTime() !== dateA.getTime()) {
+                return dateB.getTime() - dateA.getTime();
+            }
+            
+            // Se as datas são iguais, ordenar por título
+            return a.title.localeCompare(b.title);
+        });
         
         // Limitar ao número máximo de notícias
         return sorted.slice(0, this.maxNews);
     }
 
     showNewNewsNotification(count) {
-        // Criar notificação visual para novas notícias
+        // Remover notificação existente se houver
+        const existingNotification = document.querySelector('.new-news-notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // Criar nova notificação visual para novas notícias
         const notification = document.createElement('div');
         notification.className = 'new-news-notification';
         notification.innerHTML = `
             <div class="notification-content">
                 <span class="notification-icon">🔔</span>
-                <span class="notification-text">${count} nova${count > 1 ? 's' : ''} notícia${count > 1 ? 's' : ''} disponível${count > 1 ? 'is' : ''}!</span>
+                <span class="notification-text">${count} nova${count > 1 ? 's' : ''} notícia${count > 1 ? 's' : ''} encontrada${count > 1 ? 's' : ''}!</span>
                 <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
             </div>
         `;
@@ -175,103 +214,41 @@ class NewsSystem {
             max-width: 300px;
         `;
         
-        // Adicionar animação CSS se não existir
-        if (!document.getElementById('notification-styles')) {
-            const style = document.createElement('style');
-            style.id = 'notification-styles';
-            style.textContent = `
-                @keyframes slideInNotification {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-                .notification-content {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                }
-                .notification-icon {
-                    font-size: 20px;
-                    animation: bounce 2s infinite;
-                }
-                @keyframes bounce {
-                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                    40% { transform: translateY(-8px); }
-                    60% { transform: translateY(-4px); }
-                }
-                .notification-text {
-                    flex: 1;
-                    font-weight: 500;
-                    font-size: 14px;
-                }
-                .notification-close {
-                    background: rgba(255, 255, 255, 0.2);
-                    border: none;
-                    color: white;
-                    font-size: 18px;
-                    cursor: pointer;
-                    padding: 4px 8px;
-                    border-radius: 50%;
-                    width: 28px;
-                    height: 28px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: background 0.2s;
-                }
-                .notification-close:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
         document.body.appendChild(notification);
         
-        // Remover automaticamente após 6 segundos
+        // Remover automaticamente após 8 segundos
         setTimeout(() => {
             if (notification.parentElement) {
                 notification.style.animation = 'slideOutNotification 0.3s ease-in forwards';
                 setTimeout(() => notification.remove(), 300);
             }
-        }, 6000);
+        }, 8000);
         
-        // Adicionar animação de saída
-        const exitStyle = document.createElement('style');
-        exitStyle.textContent = `
-            @keyframes slideOutNotification {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(exitStyle);
+        console.log(`Notificação exibida para ${count} nova(s) notícia(s)`);
     }
 
     loadFallbackNews() {
         console.log('Carregando notícias fallback...');
-        const fallbackNews = typeof getStaticNews === 'function' ? getStaticNews() : [];
-        if (fallbackNews.length > 0) {
-            const processedNews = fallbackNews.map(news => ({
-                ...news,
-                id: this.generateNewsId(news)
-            }));
-            this.displayNews(processedNews);
-            this.updateStats(processedNews.length, new Date().toISOString());
-        } else {
-            console.warn('Nenhuma notícia fallback disponível');
-            this.showError('Nenhuma notícia disponível no momento');
-        }
+        const fallbackNews = [
+            {
+                title: "Sistema de Notícias Temporariamente Indisponível",
+                content: "O sistema está passando por manutenção para melhorar a detecção automática de novas notícias e a qualidade da extração de conteúdo. Durante este período, algumas notícias mais recentes podem não estar sendo exibidas. Recomendamos verificar diretamente o site do Inven Global para as últimas atualizações sobre League of Legends. O sistema será restaurado em breve com melhorias significativas.",
+                url: "https://www.invenglobal.com/lol",
+                image: "https://www.invenglobal.com/img/ig-logo-light.png",
+                source: "Sistema",
+                date: new Date().toISOString(),
+                translated: false
+            }
+        ];
+        
+        const processedNews = fallbackNews.map(news => ({
+            ...news,
+            id: this.generateNewsId(news),
+            titleHash: this.generateTitleHash(news.title)
+        }));
+        
+        this.displayNews(processedNews);
+        this.updateStats(processedNews.length, new Date().toISOString());
     }
 
     displayNews(news) {
@@ -311,15 +288,23 @@ class NewsSystem {
             }
         });
 
-        // Lazy loading para imagens
+        // Lazy loading aprimorado para imagens
         this.setupLazyLoading();
 
-        console.log('Notícias inseridas no DOM');
+        console.log('Notícias inseridas no DOM com sucesso');
     }
 
     createNewsCard(news, index) {
-        const date = new Date(news.date).toLocaleString('pt-BR');
+        const date = new Date(news.date);
+        const isToday = this.isToday(date);
+        const isRecent = this.isRecent(date);
+        
+        const formattedDate = isToday ? 
+            `Hoje, ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` :
+            date.toLocaleString('pt-BR');
+            
         const translationBadge = news.translated ? '<span class="translation-badge">🌐 Traduzido</span>' : '';
+        const recentBadge = isToday ? '<span class="recent-badge">🔥 Hoje</span>' : (isRecent ? '<span class="recent-badge">📅 Recente</span>' : '');
 
         let firstSentence = '';
         if (news.content) {
@@ -334,8 +319,8 @@ class NewsSystem {
             }
         }
 
-        // Usar imagem da notícia ou imagem padrão
-        const imageUrl = news.image || 'https://www.invenglobal.com/img/ig-logo-light.png';
+        // Usar imagem da notícia ou imagem padrão melhorada
+        const imageUrl = this.validateImageUrl(news.image) || 'https://www.invenglobal.com/img/ig-logo-light.png';
         
         const preview = firstSentence ? 
             `<div class="news-card-content-wrapper">
@@ -343,15 +328,17 @@ class NewsSystem {
             </div>` : '';
 
         return `
-            <div class="news-card" id="news-card-${index}" style="cursor: pointer;" data-news-id="${news.id || index}">
+            <div class="news-card ${isToday ? 'news-card-today' : ''}" id="news-card-${index}" style="cursor: pointer;" data-news-id="${news.id || index}">
                 <div class="news-card-image-container">
                     <img 
                         class="news-card-image lazy-load" 
                         data-src="${this.sanitizeHtml(imageUrl)}" 
                         alt="${this.sanitizeHtml(news.title)}"
                         loading="lazy"
+                        onerror="this.onerror=null; this.src='https://www.invenglobal.com/img/ig-logo-light.png';"
                     />
                     <div class="news-card-image-overlay"></div>
+                    ${recentBadge ? `<div class="news-card-badge">${recentBadge}</div>` : ''}
                 </div>
                 <div class="news-card-body">
                     <div class="news-card-header">
@@ -362,7 +349,7 @@ class NewsSystem {
                         <h3 class="news-card-title">${this.sanitizeHtml(news.title)}</h3>
                         <div class="news-card-date">
                             <span class="date-icon">📅</span>
-                            ${date}
+                            ${formattedDate}
                         </div>
                     </div>
                     ${preview}
@@ -381,36 +368,82 @@ class NewsSystem {
         `;
     }
 
+    // Verificar se a data é hoje
+    isToday(date) {
+        const today = new Date();
+        return date.toDateString() === today.toDateString();
+    }
+
+    // Verificar se a data é recente (últimos 2 dias)
+    isRecent(date) {
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        return date >= twoDaysAgo;
+    }
+
+    // Validar URL da imagem
+    validateImageUrl(url) {
+        if (!url) return null;
+        
+        try {
+            new URL(url);
+            return url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) ? url : null;
+        } catch {
+            return null;
+        }
+    }
+
     setupLazyLoading() {
         const images = document.querySelectorAll('.lazy-load');
         
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    const src = img.getAttribute('data-src');
-                    
-                    if (src) {
-                        img.src = src;
-                        img.classList.remove('lazy-load');
-                        img.classList.add('loaded');
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const src = img.getAttribute('data-src');
                         
-                        img.onload = () => {
-                            img.style.opacity = '1';
-                        };
+                        if (src) {
+                            // Adicionar loading placeholder
+                            img.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                            
+                            img.src = src;
+                            img.classList.remove('lazy-load');
+                            img.classList.add('loaded');
+                            
+                            img.onload = () => {
+                                img.style.opacity = '1';
+                                img.style.backgroundColor = 'transparent';
+                            };
+                            
+                            img.onerror = () => {
+                                img.src = 'https://www.invenglobal.com/img/ig-logo-light.png';
+                                img.style.opacity = '1';
+                                img.style.backgroundColor = 'transparent';
+                                console.warn('Falha ao carregar imagem:', src);
+                            };
+                        }
                         
-                        img.onerror = () => {
-                            img.src = 'https://www.invenglobal.com/img/ig-logo-light.png';
-                            img.style.opacity = '1';
-                        };
+                        observer.unobserve(img);
                     }
-                    
-                    observer.unobserve(img);
+                });
+            }, {
+                rootMargin: '50px 0px',
+                threshold: 0.01
+            });
+
+            images.forEach(img => imageObserver.observe(img));
+        } else {
+            // Fallback para navegadores sem IntersectionObserver
+            images.forEach(img => {
+                const src = img.getAttribute('data-src');
+                if (src) {
+                    img.src = src;
+                    img.classList.remove('lazy-load');
+                    img.classList.add('loaded');
                 }
             });
-        });
-
-        images.forEach(img => imageObserver.observe(img));
+        }
     }
 
     showModal(news) {
@@ -429,17 +462,26 @@ class NewsSystem {
 
         modalTitle.textContent = news.title;
         modalSource.textContent = news.source;
-        modalDate.textContent = new Date(news.date).toLocaleString('pt-BR');
+        
+        const date = new Date(news.date);
+        const isToday = this.isToday(date);
+        modalDate.textContent = isToday ? 
+            `Hoje, ${date.toLocaleTimeString('pt-BR')}` : 
+            date.toLocaleString('pt-BR');
+            
         modalContent.innerHTML = this.processFullContent(news.content);
         modalSourceLink.href = news.url;
         modalSourceLink.textContent = `Ler artigo original no ${news.source}`;
         modalSourceLink.target = '_blank';
 
         // Adicionar imagem ao modal se existir
-        if (modalImage && news.image) {
+        if (modalImage && this.validateImageUrl(news.image)) {
             modalImage.src = news.image;
             modalImage.style.display = 'block';
             modalImage.alt = news.title;
+            modalImage.onerror = () => {
+                modalImage.style.display = 'none';
+            };
         } else if (modalImage) {
             modalImage.style.display = 'none';
         }
@@ -458,14 +500,14 @@ class NewsSystem {
         let paragraphs = processedContent
             .split(/\n\s*\n|\n/)
             .map(p => p.trim())
-            .filter(p => p.length > 10); // Filtrar parágrafos muito curtos
+            .filter(p => p.length > 15); // Filtrar parágrafos muito curtos
 
         if (paragraphs.length === 0) {
             // Fallback: dividir por pontos se não há quebras de linha
             paragraphs = processedContent
                 .split(/\.\s+/)
                 .map(p => p.trim())
-                .filter(p => p.length > 20)
+                .filter(p => p.length > 30)
                 .map(p => p.endsWith('.') ? p : p + '.');
         }
 
@@ -597,7 +639,7 @@ class NewsSystem {
     startAutoRefresh() {
         if (this.autoRefresh) {
             this.refreshInterval = setInterval(() => {
-                console.log('Auto-refresh executado');
+                console.log('Auto-refresh executado - verificando novas notícias');
                 this.loadNews();
             }, this.refreshIntervalTime);
             console.log(`Auto-refresh iniciado (${this.refreshIntervalTime / 1000} segundos)`);
@@ -641,6 +683,7 @@ window.NewsSystem = NewsSystem;
 
 // Inicializar sistema quando DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM carregado - inicializando NewsSystem');
     window.newsSystem = new NewsSystem();
 });
 
@@ -648,11 +691,13 @@ document.addEventListener('DOMContentLoaded', () => {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.newsSystem) {
+            console.log('Inicializando NewsSystem via DOMContentLoaded');
             window.newsSystem = new NewsSystem();
         }
     });
 } else {
     if (!window.newsSystem) {
+        console.log('Inicializando NewsSystem imediatamente');
         window.newsSystem = new NewsSystem();
     }
 }
