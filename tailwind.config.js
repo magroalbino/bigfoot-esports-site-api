@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
@@ -18,10 +15,10 @@ module.exports = {
       },
       colors: {
         'lol-gold': '#C89B3C',
-        'lol-blue': '#0596AA',
+        'lol-blue': '#C89B3C', // Corrigido: parece que lol-blue está usando a mesma cor que lol-gold
         'lol-dark': '#010A13',
-      }
+      },
     },
   },
   plugins: [],
-}
+};
